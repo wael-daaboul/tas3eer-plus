@@ -71,6 +71,12 @@ Static deployment.
 
 Focus: Accuracy + Simplicity.
 
+Current MVP notes:
+
+* Default currency: USD
+* Supports global currency selection
+* Labor time uses hours + minutes inputs
+
 ---
 
 ## 6. Future Phases (Not Now)

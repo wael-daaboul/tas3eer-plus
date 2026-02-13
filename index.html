@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Tas3eer+ | تسعير+</title>
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <main class="container">
+    <div class="topbar">
+      <h1 id="appTitle"></h1>
+      <label class="topbar-control">
+        <span id="languageLabel"></span>
+        <select id="language">
+          <option value="ar">العربية</option>
+          <option value="en">English</option>
+        </select>
+      </label>
+    </div>
+    <p id="appHint" class="hint"></p>
+
+    <section class="card">
+      <h2 id="inputsTitle"></h2>
+
+      <label>
+        <span id="materialsCostLabel"></span>
+        <input id="materialsCost" type="number" min="0" step="0.01" placeholder="مثال: 2500" />
+      </label>
+
+      <div class="grid2">
+        <label>
+          <span id="laborHoursLabel"></span>
+          <input id="laborHoursHours" type="number" min="0" step="1" placeholder="مثال: 1" />
+        </label>
+
+        <label>
+          <span id="laborMinutesLabel"></span>
+          <input id="laborHoursMinutes" type="number" min="0" max="59" step="1" placeholder="مثال: 30" />
+        </label>
+      </div>
+
+      <label>
+        <span id="hourlyRateLabel"></span>
+        <input id="hourlyRate" type="number" min="0" step="0.01" placeholder="مثال: 8000" />
+      </label>
+
+      <div class="grid2">
+        <label>
+          <span id="monthlyFixedLabel"></span>
+          <input id="monthlyFixed" type="number" min="0" step="0.01" placeholder="مثال: 300000" />
+        </label>
+
+        <label>
+          <span id="monthlyUnitsLabel"></span>
+          <input id="monthlyUnits" type="number" min="1" step="1" value="100" />
+        </label>
+      </div>
+
+      <label>
+        <span id="marginPercentLabel"></span>
+        <input id="marginPercent" type="number" min="0" step="0.1" value="20" />
+      </label>
+
+      <label>
+        <span id="currencyLabel"></span>
+        <select id="currency">
+          <option value="USD" selected>USD</option>
+          <option value="EUR">EUR</option>
+          <option value="GBP">GBP</option>
+          <option value="SAR">SAR</option>
+          <option value="AED">AED</option>
+          <option value="IQD">IQD</option>
+          <option value="TRY">TRY</option>
+          <option value="JOD">JOD</option>
+          <option value="EGP">EGP</option>
+        </select>
+      </label>
+
+      <button id="calcBtn" type="button"></button>
+      <p id="errorBox" class="error" style="display:none;"></p>
+    </section>
+
+    <section class="card">
+      <h2 id="resultsTitle"></h2>
+      <div id="results" class="results"></div>
+    </section>
+  </main>
+
+  <script type="module" src="./src/app.js"></script>
+</body>
+</html>
