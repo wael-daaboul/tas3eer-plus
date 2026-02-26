@@ -1,0 +1,330 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>تسعير+</title>
+  <link rel="stylesheet" href="../styles.css" />
+</head>
+<body>
+  <main class="app">
+    <header class="app-header card">
+      <div>
+        <h1 id="appTitle">تسعير+</h1>
+        <p id="appSubtitle" class="muted"></p>
+      </div>
+      <div class="header-actions">
+        <label class="field compact">
+          <span id="languageLabel"></span>
+          <select id="languageSelect">
+            <option value="ar">العربية</option>
+            <option value="en">الإنجليزية</option>
+          </select>
+        </label>
+        <button id="exportCsvBtn" type="button"></button>
+        <button id="exportXlsxBtn" type="button"></button>
+        <button id="exportPdfBtn" type="button"></button>
+      </div>
+    </header>
+
+    <nav class="steps" aria-label="التنقل">
+      <button type="button" class="step active" data-step="settings" id="stepSettings"></button>
+      <button type="button" class="step" data-step="materials" id="stepMaterials"></button>
+      <button type="button" class="step" data-step="products" id="stepProducts"></button>
+      <button type="button" class="step" data-step="results" id="stepResults"></button>
+    </nav>
+
+    <section class="card page active" id="page-settings" data-page="settings">
+      <h2 id="settingsTitle"></h2>
+      <p id="settingsHint" class="muted"></p>
+
+      <div class="mode-toggle" role="group" aria-label="وضع العرض">
+        <button type="button" id="simpleModeBtn" class="mode-btn active"></button>
+        <button type="button" id="advancedModeBtn" class="mode-btn"></button>
+      </div>
+
+      <label class="field">
+        <span id="currencyLabel"></span>
+        <select id="currencyCode"></select>
+      </label>
+
+      <label class="field">
+        <span id="hourlyRateLabel"></span>
+        <small id="hourlyRateHelp" class="muted"></small>
+        <div class="inline-with-tip">
+          <input id="hourlyRate" type="number" min="0" step="0.01" />
+          <button type="button" id="hourlyRateTooltip" class="tip" aria-expanded="false"></button>
+        </div>
+        <small id="hourlyRateTooltipText" class="muted hidden"></small>
+      </label>
+
+      <section class="list-block">
+        <div class="list-head">
+          <h3 id="fixedCostsTitle"></h3>
+          <button type="button" id="addFixedCostBtn"></button>
+        </div>
+        <p id="fixedCostsHint" class="muted"></p>
+        <div id="fixedCostsList" class="rows"></div>
+      </section>
+
+      <section class="list-block">
+        <h3 id="hasSalesLabel"></h3>
+        <div class="inline-group">
+          <label><input type="radio" name="hasSales" value="yes" checked /> <span id="hasSalesYes"></span></label>
+          <label><input type="radio" name="hasSales" value="no" /> <span id="hasSalesNo"></span></label>
+        </div>
+
+        <div id="salesYesBlock">
+          <label class="field">
+            <span id="salesCurrentUnitsLabel"></span>
+            <small id="salesCurrentUnitsHelp" class="muted"></small>
+            <input id="salesCurrentUnits" type="number" min="0" step="1" />
+          </label>
+        </div>
+
+        <div id="salesNoBlock" class="hidden">
+          <span id="salesPresetLabel" class="muted"></span>
+          <div class="quick-buttons">
+            <button type="button" class="quick-btn" data-units="30" id="presetLowBtn"></button>
+            <button type="button" class="quick-btn" data-units="100" id="presetMediumBtn"></button>
+            <button type="button" class="quick-btn" data-units="300" id="presetHighBtn"></button>
+          </div>
+          <label class="field">
+            <span id="salesOptionalInputLabel"></span>
+            <input id="salesOptionalUnits" type="number" min="0" step="1" />
+          </label>
+        </div>
+      </section>
+
+      <label class="field">
+        <span id="pricingSimpleLabel"></span>
+        <small id="pricingSimpleHelp" class="muted"></small>
+        <input id="pricingPercent" type="number" min="0" step="0.1" value="30" />
+        <button type="button" id="advancedSettingsBtn" class="link-btn"></button>
+      </label>
+
+      <section id="advancedSettingsPanel" class="list-block hidden">
+        <div class="field">
+          <div class="inline-group">
+            <label><input type="radio" name="pricingMode" value="markup" checked /> <span id="pricingModeMarkup"></span></label>
+            <label><input type="radio" name="pricingMode" value="margin" /> <span id="pricingModeMargin"></span></label>
+          </div>
+          <small id="pricingModeAdvancedHelp" class="muted"></small>
+        </div>
+
+        <label class="field">
+          <span id="safetyMarginPercentLabel"></span>
+          <small id="safetyMarginPercentHelp" class="muted"></small>
+          <input id="safetyMarginPercent" type="number" min="0" step="0.1" value="5" />
+        </label>
+      </section>
+
+      <section id="equipmentSection" class="list-block hidden">
+        <div class="list-head">
+          <h3 id="equipmentTitle"></h3>
+          <button type="button" id="addEquipmentBtn"></button>
+        </div>
+        <p id="equipmentHint" class="muted"></p>
+        <div id="equipmentList" class="rows"></div>
+      </section>
+
+      <div class="actions">
+        <button type="button" id="saveSettingsBtn"></button>
+        <button type="button" data-next="materials" class="nextBtn" id="toMaterialsBtn"></button>
+      </div>
+    </section>
+
+    <section class="card page" id="page-materials" data-page="materials">
+      <h2 id="materialsLibraryTitle"></h2>
+      <p id="materialsLibraryHint" class="muted"></p>
+
+      <label class="field">
+        <span id="materialsSearchLabel"></span>
+        <input id="materialsSearch" type="search" />
+      </label>
+
+      <form id="materialForm" class="list-block">
+        <h3 id="materialFormTitle"></h3>
+        <div class="grid-2">
+          <label class="field">
+            <span id="materialNameArLabel"></span>
+            <input id="materialNameAr" />
+          </label>
+          <label class="field">
+            <span id="materialNameEnLabel"></span>
+            <input id="materialNameEn" />
+          </label>
+        </div>
+
+        <div class="grid-3">
+          <label class="field">
+            <span id="materialUnitTypeLabel"></span>
+            <select id="materialUnitType">
+              <option value="piece">قطعة</option>
+              <option value="g">غرام</option>
+              <option value="kg">كيلوغرام</option>
+              <option value="ml">ملليلتر</option>
+              <option value="l">لتر</option>
+            </select>
+          </label>
+
+          <label class="field">
+            <span id="materialPricingModeLabel"></span>
+            <select id="materialPricingMode">
+              <option value="perUnit">سعر لكل وحدة</option>
+              <option value="perPack">سعر عبوة</option>
+            </select>
+          </label>
+
+          <label class="field">
+            <span id="materialWasteDefaultLabel"></span>
+            <input id="materialWasteDefaultPercent" type="number" min="0" step="0.1" value="0" />
+          </label>
+        </div>
+
+        <div id="perUnitBlock" class="grid-2">
+          <label class="field">
+            <span id="materialUnitPriceLabel"></span>
+            <input id="materialUnitPrice" type="number" min="0" step="0.0001" value="0" />
+          </label>
+        </div>
+
+        <div id="perPackBlock" class="grid-2 hidden">
+          <label class="field">
+            <span id="materialPackPriceLabel"></span>
+            <input id="materialPackPrice" type="number" min="0" step="0.0001" value="0" />
+          </label>
+          <label class="field">
+            <span id="materialPackSizeLabel"></span>
+            <input id="materialPackSize" type="number" min="0" step="0.0001" value="0" />
+          </label>
+          <p id="materialPackExample" class="muted"></p>
+        </div>
+
+        <div class="actions">
+          <button type="submit" id="saveMaterialBtn"></button>
+          <button type="button" id="resetMaterialBtn"></button>
+        </div>
+      </form>
+
+      <section class="list-block">
+        <h3 id="materialsListTitle"></h3>
+        <div id="materialsLibraryList" class="products-list"></div>
+      </section>
+
+      <div class="actions">
+        <button type="button" data-next="products" class="nextBtn" id="toProductsBtn"></button>
+      </div>
+    </section>
+
+    <section class="card page" id="page-products" data-page="products">
+      <h2 id="productsTitle"></h2>
+      <p id="productsHint" class="muted"></p>
+
+      <form id="productForm" class="product-form">
+        <div class="grid-2">
+          <label class="field">
+            <span id="productNameLabel"></span>
+            <input id="productName" required />
+          </label>
+
+          <label class="field">
+            <span id="unitNameLabel"></span>
+            <input id="unitName" value="" />
+          </label>
+        </div>
+
+        <div class="grid-2">
+          <label class="field">
+            <span id="laborMinutesLabel"></span>
+            <input id="laborMinutes" type="number" min="0" step="1" value="0" />
+          </label>
+
+          <fieldset class="energy-box">
+            <legend id="energyTitle"></legend>
+            <div class="grid-3">
+              <label class="field">
+                <span id="energyKwLabel"></span>
+                <input id="energyKw" type="number" min="0" step="0.01" value="0" />
+              </label>
+              <label class="field">
+                <span id="energyMinutesLabel"></span>
+                <input id="energyMinutes" type="number" min="0" step="1" value="0" />
+              </label>
+              <label class="field">
+                <span id="energyPriceLabel"></span>
+                <input id="energyPricePerKwh" type="number" min="0" step="0.0001" value="0" />
+              </label>
+            </div>
+          </fieldset>
+        </div>
+
+        <section class="list-block">
+          <div class="list-head">
+            <h3 id="productRecipeTitle"></h3>
+            <button type="button" id="addRecipeItemBtn"></button>
+          </div>
+          <datalist id="recipeMaterialOptions"></datalist>
+          <div id="recipeList" class="rows"></div>
+        </section>
+
+        <section class="list-block">
+          <div class="list-head">
+            <h3 id="salesVariantsTitle"></h3>
+            <button type="button" id="addVariantBtn"></button>
+          </div>
+          <div id="variantsList" class="rows"></div>
+        </section>
+
+        <div class="actions">
+          <button type="submit" id="saveProductBtn"></button>
+          <button type="button" id="resetProductBtn"></button>
+          <button type="button" data-next="results" class="nextBtn" id="toResultsBtn"></button>
+        </div>
+      </form>
+
+      <section class="list-block">
+        <h3 id="savedProductsTitle"></h3>
+        <div id="productsList" class="products-list"></div>
+      </section>
+    </section>
+
+    <section class="card page" id="page-results" data-page="results">
+      <h2 id="resultsTitle"></h2>
+      <p id="resultsHint" class="muted"></p>
+
+      <div class="grid-2">
+        <label class="field">
+          <span id="resultProductLabel"></span>
+          <select id="resultProductSelect"></select>
+        </label>
+        <label class="field">
+          <span id="resultSellingPriceLabel"></span>
+          <input id="resultSellingPrice" type="number" min="0" step="0.01" value="0" />
+        </label>
+      </div>
+
+      <div class="actions">
+        <button type="button" id="calculateBtn"></button>
+        <button type="button" id="howCalculatedBtn"></button>
+      </div>
+
+      <div id="statusBadge" class="badge muted"></div>
+      <h3 id="unitResultsTitle"></h3>
+      <div id="resultsGrid" class="results-grid"></div>
+
+      <h3 id="variantResultsTitle"></h3>
+      <div id="variantCards" class="results-grid"></div>
+      <div id="calculationDetails" class="list-block hidden"></div>
+
+      <div id="monthlyTable"></div>
+    </section>
+
+    <p id="feedback" class="feedback" aria-live="polite"></p>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js"></script>
+  <script type="module" src="../src/main.js"></script>
+</body>
+</html>

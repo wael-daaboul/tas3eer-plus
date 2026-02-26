@@ -2,91 +2,65 @@
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Tas3eer+ | تسعير+</title>
-  <link rel="stylesheet" href="./styles.css" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>تسعير+ | الرئيسية</title>
+  <link rel="stylesheet" href="/styles.css" />
+  <link rel="stylesheet" href="/site/site.css" />
+  <script defer src="/site/site.js"></script>
 </head>
 <body>
-  <main class="container">
-    <div class="topbar">
-      <h1 id="appTitle"></h1>
-      <label class="topbar-control">
-        <span id="languageLabel"></span>
-        <select id="language">
-          <option value="ar">العربية</option>
-          <option value="en">English</option>
-        </select>
-      </label>
+  <header class="header">
+    <div class="container header-inner">
+      <a class="brand" href="/index.html" data-i18n="brand">تسعير+</a>
+      <nav class="nav" aria-label="التنقل الرئيسي">
+        <a class="active" href="/index.html" data-i18n="navHome">الرئيسية</a>
+        <a href="/app/" data-i18n="navApp">الأداة</a>
+        <a href="/learn/" data-i18n="navLearn">تعلّم التسعير</a>
+        <a href="/how-it-works/" data-i18n="navHow">كيف نحسب؟</a>
+        <a href="/support/" data-i18n="navSupport">دعم المشروع</a>
+        <a href="/about/" data-i18n="navAbout">من نحن</a>
+      </nav>
+      <div class="lang-switch" aria-label="تبديل اللغة">
+        <button class="lang-btn" data-lang="ar" type="button">AR</button>
+        <button class="lang-btn" data-lang="en" type="button">EN</button>
+      </div>
     </div>
-    <p id="appHint" class="hint"></p>
+  </header>
 
-    <section class="card">
-      <h2 id="inputsTitle"></h2>
+  <main class="container page-main">
+    <section class="hero card">
+      <h1 data-i18n="homeTitle">احسب سعرك الحقيقي قبل أن تخسر دون أن تشعر</h1>
+      <p data-i18n="homeSubtitle">تسعير+ يساعدك على اتخاذ قرار سعر بسيط وواضح لمشروعك الصغير.</p>
+      <a class="btn btn-primary" href="/app/" data-i18n="ctaStart">ابدأ الآن</a>
+    </section>
 
-      <label>
-        <span id="materialsCostLabel"></span>
-        <input id="materialsCost" type="number" min="0" step="0.01" placeholder="مثال: 2500" />
-      </label>
-
-      <div class="grid2">
-        <label>
-          <span id="laborHoursLabel"></span>
-          <input id="laborHoursHours" type="number" min="0" step="1" placeholder="مثال: 1" />
-        </label>
-
-        <label>
-          <span id="laborMinutesLabel"></span>
-          <input id="laborHoursMinutes" type="number" min="0" max="59" step="1" placeholder="مثال: 30" />
-        </label>
-      </div>
-
-      <label>
-        <span id="hourlyRateLabel"></span>
-        <input id="hourlyRate" type="number" min="0" step="0.01" placeholder="مثال: 8000" />
-      </label>
-
-      <div class="grid2">
-        <label>
-          <span id="monthlyFixedLabel"></span>
-          <input id="monthlyFixed" type="number" min="0" step="0.01" placeholder="مثال: 300000" />
-        </label>
-
-        <label>
-          <span id="monthlyUnitsLabel"></span>
-          <input id="monthlyUnits" type="number" min="1" step="1" value="100" />
-        </label>
-      </div>
-
-      <label>
-        <span id="marginPercentLabel"></span>
-        <input id="marginPercent" type="number" min="0" step="0.1" value="20" />
-      </label>
-
-      <label>
-        <span id="currencyLabel"></span>
-        <select id="currency">
-          <option value="USD" selected>USD</option>
-          <option value="EUR">EUR</option>
-          <option value="GBP">GBP</option>
-          <option value="SAR">SAR</option>
-          <option value="AED">AED</option>
-          <option value="IQD">IQD</option>
-          <option value="TRY">TRY</option>
-          <option value="JOD">JOD</option>
-          <option value="EGP">EGP</option>
-        </select>
-      </label>
-
-      <button id="calcBtn" type="button"></button>
-      <p id="errorBox" class="error" style="display:none;"></p>
+    <section class="card-grid">
+      <article class="card">
+        <h2 data-i18n="valueOne">التكلفة الحقيقية للقطعة</h2>
+      </article>
+      <article class="card">
+        <h2 data-i18n="valueTwo">السعر الأدنى المقبول</h2>
+      </article>
+      <article class="card">
+        <h2 data-i18n="valueThree">نقطة التعادل والربح الشهري</h2>
+      </article>
     </section>
 
     <section class="card">
-      <h2 id="resultsTitle"></h2>
-      <div id="results" class="results"></div>
+      <h2 data-i18n="audienceTitle">لمن هذه الأداة؟</h2>
+      <p data-i18n="audienceBody">مناسبة لمشاريع الحلويات والمنتجات اليدوية والعطور والطباعة والبيع عبر إنستغرام.</p>
     </section>
   </main>
 
-  <script type="module" src="./src/app.js"></script>
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-links">
+        <a href="/privacy/" data-i18n="footerPrivacy">سياسة الخصوصية</a>
+        <a href="/terms/" data-i18n="footerTerms">الشروط</a>
+        <a href="mailto:hello@pricingplus.app" data-i18n="footerContact">تواصل</a>
+        <span data-i18n="footerVersion">نسخة المشروع v1.0</span>
+      </div>
+    </div>
+  </footer>
 </body>
 </html>
