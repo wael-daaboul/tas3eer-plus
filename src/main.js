@@ -62,7 +62,8 @@ function createDefaultProject() {
     hasSales: "no",
     salesUnitsInput: 0,
     salesUndefined: true,
-    uiMode: "simple"
+    uiMode: "simple",
+    demo: null
   };
 }
 
@@ -128,9 +129,123 @@ function createDefaultProduct() {
   };
 }
 
+function buildDemoSeed(demoKey) {
+  const project = {
+    ...createDefaultProject(),
+    hasSales: "yes",
+    salesUndefined: false,
+    pricingMode: "markup",
+    pricingPercent: 30,
+    safetyMarginPercent: 5
+  };
+
+  if (demoKey === "perfume") {
+    project.hourlyRate = 8;
+    project.expectedMonthlyUnits = 120;
+    project.expectedMonthlySales = 120;
+    project.salesUnitsInput = 120;
+    project.monthlyFixedCosts = project.monthlyFixedCosts.map((item) => {
+      if (item.templateKey === "fixedMarketingAds") return { ...item, amount: 80 };
+      if (item.templateKey === "fixedSubscriptions") return { ...item, amount: 25 };
+      return item;
+    });
+
+    const m1 = { id: uid("mat"), name_ar: "زيت عطري", name_en: "Fragrance Oil", unitType: "ml", pricingMode: "perPack", unitPrice: 0, packPrice: 25, packSize: 50, wasteDefaultPercent: 2 };
+    const m2 = { id: uid("mat"), name_ar: "كحول", name_en: "Alcohol", unitType: "ml", pricingMode: "perUnit", unitPrice: 0.03, packPrice: 0, packSize: 0, wasteDefaultPercent: 0 };
+    const m3 = { id: uid("mat"), name_ar: "عبوة زجاج", name_en: "Glass Bottle", unitType: "piece", pricingMode: "perUnit", unitPrice: 0.8, packPrice: 0, packSize: 0, wasteDefaultPercent: 0 };
+    const product = {
+      ...createDefaultProduct(),
+      id: uid("product"),
+      name: "عطر منزلي",
+      unitName: "عبوة 50ml",
+      laborMinutes: 20,
+      recipe: [
+        { materialId: m1.id, qtyPerUnit: 4, overrideWastePercent: null },
+        { materialId: m2.id, qtyPerUnit: 40, overrideWastePercent: null },
+        { materialId: m3.id, qtyPerUnit: 1, overrideWastePercent: null }
+      ],
+      variants: [
+        { id: uid("variant"), name: "عبوة 50ml", unitsPerVariant: 1, extraPackagingCost: 0.4, sellingPriceOverride: 0, pricingTargetPercent: 35, expectedMonthlySalesVariant: null, hasDelivery: true, deliveryPricingMode: "included_in_price", deliveryCost: 1.2, deliveryCostBasis: "perOrder" },
+        { id: uid("variant"), name: "عبوة 100ml", unitsPerVariant: 2, extraPackagingCost: 0.6, sellingPriceOverride: 0, pricingTargetPercent: 35, expectedMonthlySalesVariant: null, hasDelivery: true, deliveryPricingMode: "included_in_price", deliveryCost: 1.2, deliveryCostBasis: "perOrder" }
+      ]
+    };
+    return { project, materials: [m1, m2, m3], product };
+  }
+
+  if (demoKey === "handmade") {
+    project.hourlyRate = 7;
+    project.expectedMonthlyUnits = 60;
+    project.expectedMonthlySales = 60;
+    project.salesUnitsInput = 60;
+    project.monthlyFixedCosts = project.monthlyFixedCosts.map((item) => {
+      if (item.templateKey === "fixedToolsDepreciation") return { ...item, amount: 35 };
+      if (item.templateKey === "fixedOwnerIncome") return { ...item, amount: 120 };
+      return item;
+    });
+
+    const m1 = { id: uid("mat"), name_ar: "خامة قماش", name_en: "Fabric", unitType: "piece", pricingMode: "perUnit", unitPrice: 1.2, packPrice: 0, packSize: 0, wasteDefaultPercent: 8 };
+    const m2 = { id: uid("mat"), name_ar: "إكسسوار", name_en: "Accessory", unitType: "piece", pricingMode: "perUnit", unitPrice: 0.6, packPrice: 0, packSize: 0, wasteDefaultPercent: 0 };
+    const m3 = { id: uid("mat"), name_ar: "تغليف يدوي", name_en: "Handmade Packaging", unitType: "piece", pricingMode: "perUnit", unitPrice: 0.3, packPrice: 0, packSize: 0, wasteDefaultPercent: 0 };
+    const product = {
+      ...createDefaultProduct(),
+      id: uid("product"),
+      name: "منتج يدوي",
+      unitName: "قطعة",
+      laborMinutes: 60,
+      recipe: [
+        { materialId: m1.id, qtyPerUnit: 1, overrideWastePercent: null },
+        { materialId: m2.id, qtyPerUnit: 2, overrideWastePercent: null },
+        { materialId: m3.id, qtyPerUnit: 1, overrideWastePercent: null }
+      ],
+      variants: [
+        { id: uid("variant"), name: "قطعة مفردة", unitsPerVariant: 1, extraPackagingCost: 0.4, sellingPriceOverride: 0, pricingTargetPercent: 40, expectedMonthlySalesVariant: null, hasDelivery: true, deliveryPricingMode: "customer_separate", deliveryCost: 1.5, deliveryCostBasis: "perOrder" },
+        { id: uid("variant"), name: "باكج 3 قطع", unitsPerVariant: 3, extraPackagingCost: 0.9, sellingPriceOverride: 0, pricingTargetPercent: 35, expectedMonthlySalesVariant: null, hasDelivery: true, deliveryPricingMode: "customer_separate", deliveryCost: 1.5, deliveryCostBasis: "perOrder" }
+      ]
+    };
+    return { project, materials: [m1, m2, m3], product };
+  }
+
+  project.hourlyRate = 6;
+  project.expectedMonthlyUnits = 90;
+  project.expectedMonthlySales = 90;
+  project.salesUnitsInput = 90;
+  project.monthlyFixedCosts = project.monthlyFixedCosts.map((item) => {
+    if (item.templateKey === "fixedUtilities") return { ...item, amount: 30 };
+    if (item.templateKey === "fixedMarketingAds") return { ...item, amount: 40 };
+    return item;
+  });
+
+  const m1 = { id: uid("mat"), name_ar: "طحين", name_en: "Flour", unitType: "kg", pricingMode: "perPack", unitPrice: 0, packPrice: 20, packSize: 10, wasteDefaultPercent: 3 };
+  const m2 = { id: uid("mat"), name_ar: "سكر", name_en: "Sugar", unitType: "kg", pricingMode: "perPack", unitPrice: 0, packPrice: 18, packSize: 10, wasteDefaultPercent: 2 };
+  const m3 = { id: uid("mat"), name_ar: "علبة تغليف", name_en: "Packaging Box", unitType: "piece", pricingMode: "perUnit", unitPrice: 0.5, packPrice: 0, packSize: 0, wasteDefaultPercent: 0 };
+  const product = {
+    ...createDefaultProduct(),
+    id: uid("product"),
+    name: "حلوى منزلية",
+    unitName: "قطعة",
+    laborMinutes: 40,
+    recipe: [
+      { materialId: m1.id, qtyPerUnit: 0.12, overrideWastePercent: null },
+      { materialId: m2.id, qtyPerUnit: 0.05, overrideWastePercent: null },
+      { materialId: m3.id, qtyPerUnit: 1, overrideWastePercent: null }
+    ],
+    variants: [
+      { id: uid("variant"), name: "قطعة مفردة", unitsPerVariant: 1, extraPackagingCost: 0.2, sellingPriceOverride: 0, pricingTargetPercent: 30, expectedMonthlySalesVariant: null, hasDelivery: true, deliveryPricingMode: "merchant_free", deliveryCost: 1.5, deliveryCostBasis: "perOrder" },
+      { id: uid("variant"), name: "علبة 6 قطع", unitsPerVariant: 6, extraPackagingCost: 0.9, sellingPriceOverride: 0, pricingTargetPercent: 28, expectedMonthlySalesVariant: null, hasDelivery: true, deliveryPricingMode: "merchant_free", deliveryCost: 1.5, deliveryCostBasis: "perOrder" }
+    ]
+  };
+  return { project, materials: [m1, m2, m3], product };
+}
+
 const refs = {
   feedback: document.getElementById("feedback"),
   languageSelect: document.getElementById("languageSelect"),
+  siteLangButtons: [...document.querySelectorAll(".lang-btn")],
+  siteNavHome: document.getElementById("siteNavHome"),
+  siteNavLearn: document.getElementById("siteNavLearn"),
+  siteNavHow: document.getElementById("siteNavHow"),
+  siteNavSupport: document.getElementById("siteNavSupport"),
+  siteNavAbout: document.getElementById("siteNavAbout"),
   stepSettings: document.getElementById("stepSettings"),
   stepMaterials: document.getElementById("stepMaterials"),
   stepProducts: document.getElementById("stepProducts"),
@@ -156,6 +271,9 @@ const refs = {
   addFixedCostBtn: document.getElementById("addFixedCostBtn"),
   addEquipmentBtn: document.getElementById("addEquipmentBtn"),
   saveSettingsBtn: document.getElementById("saveSettingsBtn"),
+  demoBakeryBtn: document.getElementById("demoBakeryBtn"),
+  demoPerfumeBtn: document.getElementById("demoPerfumeBtn"),
+  demoHandmadeBtn: document.getElementById("demoHandmadeBtn"),
 
   materialsSearch: document.getElementById("materialsSearch"),
   materialForm: document.getElementById("materialForm"),
@@ -200,7 +318,12 @@ const refs = {
 
   exportCsvBtn: document.getElementById("exportCsvBtn"),
   exportXlsxBtn: document.getElementById("exportXlsxBtn"),
-  exportPdfBtn: document.getElementById("exportPdfBtn")
+  exportPdfBtn: document.getElementById("exportPdfBtn"),
+  backToSiteLink: document.getElementById("backToSiteLink"),
+  quickStartDemoBtn: document.getElementById("quickStartDemoBtn"),
+  deleteDemoBtn: document.getElementById("deleteDemoBtn"),
+  hourlyRateZeroWarning: document.getElementById("hourlyRateZeroWarning"),
+  demoSeedSectionTitle: document.getElementById("demoSeedTitle")
 };
 
 function setFeedback(message) {
@@ -241,6 +364,14 @@ function getHasSalesValue() {
   return selected?.value === "no" ? "no" : "yes";
 }
 
+function setSiteLanguageButtons(locale) {
+  refs.siteLangButtons.forEach((btn) => {
+    const isActive = btn.dataset.lang === locale;
+    btn.classList.toggle("active", isActive);
+    btn.setAttribute("aria-pressed", isActive ? "true" : "false");
+  });
+}
+
 function applyUiMode(mode) {
   state.uiMode = mode === "advanced" ? "advanced" : "simple";
   document.body.classList.toggle("simple-mode", state.uiMode === "simple");
@@ -257,6 +388,18 @@ function renderSalesBlocks() {
   const hasSales = getHasSalesValue();
   refs.salesYesBlock.classList.toggle("hidden", hasSales !== "yes");
   refs.salesNoBlock.classList.toggle("hidden", hasSales !== "no");
+}
+
+function renderHourlyRateWarning() {
+  if (!refs.hourlyRateZeroWarning) return;
+  const isZero = toNumber(refs.hourlyRate.value, 0) === 0;
+  refs.hourlyRateZeroWarning.classList.toggle("hidden", !isZero);
+}
+
+function renderDemoDeleteButton() {
+  if (!refs.deleteDemoBtn) return;
+  const show = Boolean(state.project?.demo?.isDemo);
+  refs.deleteDemoBtn.classList.toggle("hidden", !show);
 }
 
 function createInput(value = "", type = "text") {
@@ -296,6 +439,12 @@ function normalizeLegacyLabel(text, fallbackKey) {
 
 function renderCurrencySelect() {
   refs.currencyCode.innerHTML = "";
+  const placeholder = document.createElement("option");
+  placeholder.value = "";
+  placeholder.textContent = state.t("currencyPlaceholder");
+  placeholder.disabled = true;
+  refs.currencyCode.append(placeholder);
+
   state.currencies.forEach((currency) => {
     const option = document.createElement("option");
     option.value = currency.code;
@@ -305,7 +454,7 @@ function renderCurrencySelect() {
   const selectedCode = state.currencies.some((item) => item.code === state.project.currencyCode)
     ? state.project.currencyCode
     : "USD";
-  refs.currencyCode.value = selectedCode;
+  refs.currencyCode.value = selectedCode || "";
   state.project.currencyCode = selectedCode;
 }
 
@@ -961,6 +1110,97 @@ async function saveProduct(event) {
   setFeedback(t("feedbackSaved"));
 }
 
+async function applyDemoSeed(demoKey) {
+  const demo = buildDemoSeed(demoKey);
+  const demoProject = {
+    ...demo.project,
+    localeMode: state.locale,
+    demo: {
+      isDemo: true,
+      key: demoKey,
+      productIds: [demo.product.id],
+      materialIds: demo.materials.map((item) => item.id)
+    }
+  };
+
+  state.project = demoProject;
+  await storage.saveProject(demoProject);
+
+  for (const material of demo.materials) {
+    await storage.upsertMaterial(material);
+  }
+  await storage.upsertProduct(demo.product);
+
+  state.materialsLibrary = await storage.listMaterials();
+  state.products = (await storage.listProducts()).map(normalizeProduct);
+  state.selectedProductId = demo.product.id;
+
+  applyLocale(state.locale);
+  fillSettingsFromState();
+  renderProductsList();
+  renderProductPicker();
+  navigate("results");
+  refs.resultProductSelect.value = demo.product.id;
+  refs.resultSellingPrice.value = "0";
+  renderResults();
+  renderDemoDeleteButton();
+  setFeedback(state.t("feedbackDemoApplied"));
+}
+
+async function deleteCurrentDemoIfAny() {
+  const demoMeta = state.project?.demo;
+  if (!demoMeta?.isDemo) return;
+  const ok = window.confirm(state.t("confirmDeleteDemo"));
+  if (!ok) return;
+
+  const demoProductIds = new Set(demoMeta.productIds || []);
+  const demoMaterialIds = new Set(demoMeta.materialIds || []);
+
+  for (const productId of demoProductIds) {
+    await storage.deleteProduct(productId);
+  }
+
+  const remainingProducts = (await storage.listProducts()).map(normalizeProduct);
+  const usedMaterialIds = new Set();
+  remainingProducts.forEach((product) => {
+    (product.recipe || []).forEach((component) => usedMaterialIds.add(component.materialId));
+  });
+
+  for (const materialId of demoMaterialIds) {
+    if (!usedMaterialIds.has(materialId)) {
+      await storage.deleteMaterial(materialId);
+    }
+  }
+
+  state.materialsLibrary = await storage.listMaterials();
+  state.products = (await storage.listProducts()).map(normalizeProduct);
+  state.project = { ...state.project, demo: null };
+  await storage.saveProject(state.project);
+  state.selectedProductId = state.products[0]?.id ?? null;
+
+  fillSettingsFromState();
+  renderMaterialsLibraryList();
+  renderRecipeMaterialOptions();
+  renderProductsList();
+  renderProductPicker();
+  renderDemoDeleteButton();
+  navigate("settings");
+  setFeedback(state.t("feedbackDemoDeleted"));
+}
+
+async function consumeDemoFromQuery() {
+  const url = new URL(window.location.href);
+  const demo = url.searchParams.get("demo");
+  if (!demo) return;
+  if (!["bakery", "perfume", "handmade"].includes(demo)) return;
+
+  await applyDemoSeed(demo);
+  url.searchParams.delete("demo");
+  const query = url.searchParams.toString();
+  const finalUrl = `${url.pathname}${query ? `?${query}` : ""}${url.hash}`;
+  window.history.replaceState({}, "", finalUrl);
+}
+
 function renderResults() {
   const t = state.t;
   const product = state.products.find((p) => p.id === state.selectedProductId);
@@ -1129,6 +1369,12 @@ function applyLocale(locale) {
     appTitle: "appTitle",
     appSubtitle: "appSubtitle",
     languageLabel: "languageLabel",
+    backToSiteLink: "backToSiteLink",
+    siteNavHome: "siteNavHome",
+    siteNavLearn: "siteNavLearn",
+    siteNavHow: "siteNavHow",
+    siteNavSupport: "siteNavSupport",
+    siteNavAbout: "siteNavAbout",
     exportCsvBtn: "exportCsv",
     exportXlsxBtn: "exportXlsx",
     exportPdfBtn: "exportPdf",
@@ -1140,6 +1386,11 @@ function applyLocale(locale) {
 
     settingsTitle: "settingsTitle",
     settingsHint: "settingsHint",
+    quickStartTitle: "quickStartTitle",
+    quickStartStep1: "quickStartStep1",
+    quickStartStep2: "quickStartStep2",
+    quickStartStep3: "quickStartStep3",
+    quickStartDemoBtn: "quickStartDemoBtn",
     simpleModeBtn: "simpleMode",
     advancedModeBtn: "advancedMode",
     currencyLabel: "currencyLabel",
@@ -1165,6 +1416,12 @@ function applyLocale(locale) {
     safetyMarginPercentHelp: "safetyMarginPercentHelp",
     fixedCostsTitle: "fixedCostsTitle",
     fixedCostsHint: "fixedCostsHint",
+    demoSeedTitle: "demoSeedTitle",
+    demoSeedHint: "demoSeedHint",
+    demoBakeryBtn: "demoBakery",
+    demoPerfumeBtn: "demoPerfume",
+    demoHandmadeBtn: "demoHandmade",
+    deleteDemoBtn: "deleteDemoBtn",
     equipmentTitle: "equipmentTitle",
     equipmentHint: "equipmentHint",
     addFixedCostBtn: "addFixedCost",
@@ -1228,6 +1485,7 @@ function applyLocale(locale) {
   refs.hourlyRateTooltip.setAttribute("aria-expanded", "false");
   refs.hourlyRateTooltipText.textContent = t("hourlyRateTooltip");
   refs.hourlyRateTooltipText.classList.add("hidden");
+  refs.hourlyRateZeroWarning.textContent = t("hourlyRateZeroWarning");
   refs.salesOptionalUnits.placeholder = t("salesOptionalInputPlaceholder");
   refs.materialsSearch.placeholder = t("materialsSearchPlaceholder");
   refs.languageSelect.querySelector('option[value="ar"]').textContent = t("langArabic");
@@ -1245,6 +1503,9 @@ function applyLocale(locale) {
   }
 
   refs.languageSelect.value = locale;
+  setSiteLanguageButtons(locale);
+  renderHourlyRateWarning();
+  renderDemoDeleteButton();
 
   renderCurrencySelect();
   renderSettingsLists();
@@ -1274,6 +1535,8 @@ function fillSettingsFromState() {
   renderSalesBlocks();
   renderCurrencySelect();
   renderSettingsLists();
+  renderHourlyRateWarning();
+  renderDemoDeleteButton();
 }
 
 function bindEvents() {
@@ -1293,6 +1556,17 @@ function bindEvents() {
     applyLocale(next);
   });
 
+  refs.siteLangButtons.forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      const next = btn.dataset.lang === "en" ? "en" : "ar";
+      if (next === state.locale) return;
+      state.project.localeMode = next;
+      persistLocale(next);
+      await storage.saveProject(state.project);
+      applyLocale(next);
+    });
+  });
+
   refs.simpleModeBtn.addEventListener("click", () => applyUiMode("simple"));
   refs.advancedModeBtn.addEventListener("click", () => applyUiMode("advanced"));
 
@@ -1300,6 +1574,8 @@ function bindEvents() {
     state.project.currencyCode = refs.currencyCode.value || "USD";
     renderCurrencySelect();
   });
+
+  refs.hourlyRate.addEventListener("input", renderHourlyRateWarning);
 
   refs.hourlyRateTooltip.addEventListener("click", () => {
     const isHidden = refs.hourlyRateTooltipText.classList.toggle("hidden");
@@ -1314,6 +1590,14 @@ function bindEvents() {
   refs.addEquipmentBtn.addEventListener("click", () => {
     state.project.equipmentDepreciation.push({ id: uid("equip"), name: "", purchasePrice: 0, lifetimeMonths: 12 });
     renderSettingsLists();
+  });
+
+  refs.demoBakeryBtn?.addEventListener("click", () => applyDemoSeed("bakery"));
+  refs.demoPerfumeBtn?.addEventListener("click", () => applyDemoSeed("perfume"));
+  refs.demoHandmadeBtn?.addEventListener("click", () => applyDemoSeed("handmade"));
+  refs.deleteDemoBtn?.addEventListener("click", deleteCurrentDemoIfAny);
+  refs.quickStartDemoBtn?.addEventListener("click", () => {
+    refs.demoSeedSectionTitle?.scrollIntoView({ behavior: "smooth", block: "center" });
   });
 
   document.querySelectorAll('input[name="hasSales"]').forEach((radio) => {
@@ -1426,6 +1710,7 @@ async function init() {
   fillSettingsFromState();
   resetMaterialForm();
   resetProductForm();
+  await consumeDemoFromQuery();
 }
 
 init().catch((error) => {

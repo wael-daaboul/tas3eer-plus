@@ -4,14 +4,36 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>تسعير+</title>
+  <meta name="description" content="تسعير+ أداة عربية بسيطة لحساب تكلفة المنتج والسعر المناسب ونقطة التعادل للمشاريع الصغيرة." />
+  <meta property="og:title" content="تسعير+ | الأداة" />
+  <meta property="og:description" content="احسب التكلفة الحقيقية والسعر الأدنى ونقطة التعادل بسرعة." />
+  <link rel="stylesheet" href="../site/site.css" />
   <link rel="stylesheet" href="../styles.css" />
 </head>
 <body>
+  <header class="header compact">
+    <div class="container header-inner">
+      <a class="brand" href="/index.html">تسعير+</a>
+      <nav class="nav" aria-label="التنقل الرئيسي">
+        <a href="/index.html" id="siteNavHome">الرئيسية</a>
+        <a href="/learn/" id="siteNavLearn">تعلّم التسعير</a>
+        <a href="/how-it-works/" id="siteNavHow">كيف نحسب؟</a>
+        <a href="/support/" id="siteNavSupport">دعم المشروع</a>
+        <a href="/about/" id="siteNavAbout">من نحن</a>
+      </nav>
+      <div class="lang-switch" aria-label="تبديل اللغة">
+        <button class="lang-btn" data-lang="ar" type="button">AR</button>
+        <button class="lang-btn" data-lang="en" type="button">EN</button>
+      </div>
+    </div>
+  </header>
+
   <main class="app">
     <header class="app-header card">
       <div>
         <h1 id="appTitle">تسعير+</h1>
         <p id="appSubtitle" class="muted"></p>
+        <a href="/" id="backToSiteLink" class="btn btn-secondary">العودة للموقع</a>
       </div>
       <div class="header-actions">
         <label class="field compact">
@@ -38,6 +60,31 @@
       <h2 id="settingsTitle"></h2>
       <p id="settingsHint" class="muted"></p>
 
+      <section class="list-block">
+        <h3 id="quickStartTitle">ابدأ خلال 30 ثانية</h3>
+        <ol class="list">
+          <li id="quickStartStep1">حدّد أجر الساعة</li>
+          <li id="quickStartStep2">أضف المواد الأساسية</li>
+          <li id="quickStartStep3">أنشئ منتجًا وحدّد طريقة البيع</li>
+        </ol>
+        <div class="actions">
+          <button type="button" id="quickStartDemoBtn">جرّب مثال جاهز</button>
+        </div>
+      </section>
+
+      <section class="list-block">
+        <div class="list-head">
+          <h3 id="demoSeedTitle"></h3>
+        </div>
+        <p id="demoSeedHint" class="muted"></p>
+        <div class="actions">
+          <button type="button" id="demoBakeryBtn"></button>
+          <button type="button" id="demoPerfumeBtn"></button>
+          <button type="button" id="demoHandmadeBtn"></button>
+          <button type="button" id="deleteDemoBtn" class="remove hidden">حذف هذا المثال</button>
+        </div>
+      </section>
+
       <div class="mode-toggle" role="group" aria-label="وضع العرض">
         <button type="button" id="simpleModeBtn" class="mode-btn active"></button>
         <button type="button" id="advancedModeBtn" class="mode-btn"></button>
@@ -56,6 +103,7 @@
           <button type="button" id="hourlyRateTooltip" class="tip" aria-expanded="false"></button>
         </div>
         <small id="hourlyRateTooltipText" class="muted hidden"></small>
+        <small id="hourlyRateZeroWarning" class="warn-note hidden">إذا تركته 0 فستظهر النتائج أقل من الواقع.</small>
       </label>
 
       <section class="list-block">

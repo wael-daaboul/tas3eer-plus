@@ -12,6 +12,10 @@
   border-bottom: 1px solid var(--line);
 }
 
+.header.compact .header-inner {
+  padding: 0.5rem 0;
+}
+
 .header-inner {
   display: flex;
   align-items: center;

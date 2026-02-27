@@ -14,56 +14,106 @@
       footerTerms: "الشروط",
       footerContact: "تواصل",
       footerVersion: "نسخة المشروع v1.0",
-      ctaStart: "ابدأ الآن",
-      ctaOpenTool: "افتح الأداة",
-      ctaBackTool: "العودة إلى الأداة",
-
       homeTitle: "احسب سعرك الحقيقي قبل أن تخسر دون أن تشعر",
-      homeSubtitle: "تسعير+ يساعدك على اتخاذ قرار سعر بسيط وواضح لمشروعك الصغير.",
+      homeSubtitle: "تسعير+ يحوّل التسعير من تخمين إلى قرار واضح. احسب تكلفة المنتج الفعلية ثم اختر سعر بيع مناسب بثقة.",
       valueOne: "التكلفة الحقيقية للقطعة",
       valueTwo: "السعر الأدنى المقبول",
       valueThree: "نقطة التعادل والربح الشهري",
       audienceTitle: "لمن هذه الأداة؟",
-      audienceBody: "مناسبة لمشاريع الحلويات والمنتجات اليدوية والعطور والطباعة والبيع عبر إنستغرام.",
+      audienceBody: "لأصحاب المشاريع المنزلية والبيع عبر إنستغرام: حلويات، عطور، منتجات يدوية، طباعة، وغيرها.",
+
+      ctaStart: "ابدأ الآن",
+      ctaOpenTool: "افتح الأداة",
+      ctaOpenInTool: "افتح داخل الأداة",
+      ctaTryTool: "جرّب في الأداة",
+      ctaBackTool: "العودة إلى الأداة",
+      ctaLearnBasics: "تعلّم الأساسيات",
 
       learnTitle: "تعلّم التسعير",
       learnSubtitle: "محتوى عربي مبسط للمشاريع الصغيرة",
       learnBasics: "الأساسيات",
+      learnBasicsDesc: "افهم الفرق بين التكلفة الثابتة والمتغيرة وكيف تسعّر بثقة.",
       learnMistakes: "أخطاء شائعة",
+      learnMistakesDesc: "أكثر الأخطاء التي تقع فيها المشاريع المنزلية وكيف تتجنبها.",
       learnExamples: "أمثلة عملية",
+      learnExamplesDesc: "نماذج مختصرة لمنتجات حقيقية تساعدك على التطبيق فوراً.",
 
-      basicsTitle: "أساسيات التسعير",
-      basicsIntro: "ابدأ بثلاثة عناصر: تكلفة المواد، وقتك، والمصاريف الثابتة الشهرية.",
-      basicsPoint1: "لا تسعّر بناءً على سعر المنافس فقط.",
-      basicsPoint2: "حوّل وقت العمل إلى تكلفة واضحة.",
-      basicsPoint3: "أضف هامش أمان بسيط عند عدم اليقين.",
+      basicsTitle: "الأساسيات",
+      basicsIntro: "خمسة مفاهيم تكفي لتبدأ تسعيرك بشكل صحيح.",
+      conceptFixedTitle: "التكلفة الثابتة",
+      conceptFixedBody: "مصاريف شهرية تدفعها حتى لو لم تبع شيئاً.",
+      conceptFixedExample: "مثال: إيجار 100$ شهرياً.",
+      conceptVariableTitle: "التكلفة المتغيرة",
+      conceptVariableBody: "تكلفة ترتفع كلما زاد الإنتاج أو البيع.",
+      conceptVariableExample: "مثال: مواد خام 2$ لكل قطعة.",
+      conceptTimeTitle: "تكلفة الوقت",
+      conceptTimeBody: "قيمة وقتك محسوبة بالدقائق داخل كل منتج.",
+      conceptTimeExample: "مثال: 30 دقيقة عمل عند 10$/ساعة = 5$.",
+      conceptWasteTitle: "الهدر",
+      conceptWasteBody: "فاقد التصنيع الذي يزيد التكلفة الفعلية.",
+      conceptWasteExample: "مثال: هدر 10% يرفع تكلفة المواد من 10 إلى 11.",
+      conceptBreakEvenTitle: "نقطة التعادل",
+      conceptBreakEvenBody: "عدد الوحدات المطلوبة لتغطية مصاريفك فقط.",
+      conceptBreakEvenExample: "مثال: إذا الربح للوحدة 2$ والثابت 200$، التعادل 100 وحدة.",
 
       mistakesTitle: "أخطاء شائعة",
-      mistakesIntro: "هذه أخطاء تتكرر كثيراً في المشاريع المنزلية الصغيرة:",
-      mistake1: "نسيان احتساب وقتك الشخصي ضمن التكلفة.",
-      mistake2: "اعتبار كل المصاريف ثابتة أو كلها متغيرة.",
-      mistake3: "تحديد سعر البيع قبل معرفة نقطة التعادل.",
+      mistakesIntro: "7 أخطاء تتكرر في المشاريع المنزلية والبيع عبر إنستغرام:",
+      m1Title: "تسعير على سعر المنافس",
+      m1Why: "يحدث لأن السعر الظاهر يبدو مرجعاً جاهزاً.",
+      m1Fix: "احسب تكلفتك أولاً ثم قارن بعد ذلك.",
+      m2Title: "إهمال أجر صاحب المشروع",
+      m2Why: "يحدث لأن صاحب المشروع يعتبر وقته مجانياً.",
+      m2Fix: "ضع أجر ساعة واقعي حتى لو كان بسيطاً في البداية.",
+      m3Title: "نسيان المصاريف الثابتة",
+      m3Why: "تظهر عادة بعد نهاية الشهر وليس أثناء الطلب.",
+      m3Fix: "وزّع الثابت على الوحدات المتوقعة شهرياً.",
+      m4Title: "اعتبار كل منتج مربحاً بنفس الطريقة",
+      m4Why: "المنتجات تختلف في الوقت والهدر والتغليف.",
+      m4Fix: "احسب كل منتج وطريقة بيع بشكل منفصل.",
+      m5Title: "إدخال التوصيل بشكل عشوائي",
+      m5Why: "أحياناً يدفعه الزبون وأحياناً التاجر.",
+      m5Fix: "حدّد وضع التوصيل لكل طريقة بيع بوضوح.",
+      m6Title: "عدم تحديث الأسعار",
+      m6Why: "أسعار المواد تتغير تدريجياً دون ملاحظة.",
+      m6Fix: "راجع المكتبة مرة شهرياً على الأقل.",
+      m7Title: "البيع بدون هامش أمان",
+      m7Why: "الثقة الزائدة في تقديرات التكاليف.",
+      m7Fix: "أضف هامش أمان بسيط خصوصاً في البداية.",
 
       examplesTitle: "أمثلة عملية",
-      examplesIntro: "أمثلة مبسطة تساعدك على فهم القرار السعري بسرعة.",
-      example1: "قطعة منفردة: تحقق تغطية التكلفة الأساسية.",
-      example2: "علبة 6 قطع: تضيف تغليفاً وتحقق ربحاً أعلى.",
-      example3: "باكج موسمي: يحتاج متابعة هامش الربح بعناية.",
+      examplesIntro: "3 أمثلة مختصرة لتصور طريقة الاستخدام:",
+      ex1Title: "حلويات منزلية",
+      ex1Body: "مواد: سكر/طحين/تغليف. وقت: 40 دقيقة. ثابت: إيجار وتجهيزات. طريقة بيع: قطعة أو علبة 6. توصيل: لكل طلب.",
+      ex2Title: "عطور",
+      ex2Body: "مواد: زيت عطري/كحول/عبوة. وقت: 20 دقيقة. ثابت: تسويق واشتراكات. طريقة بيع: 50ml أو 100ml. توصيل: مدمج ضمن السعر.",
+      ex3Title: "منتجات يدوية",
+      ex3Body: "مواد: خامات يدوية وتغليف. وقت: 60 دقيقة. ثابت: أدوات وتجهيزات. طريقة بيع: قطعة مفردة أو باكج. توصيل: يدفعه الزبون منفصلاً.",
 
       howTitle: "كيف نحسب داخل تسعير+؟",
-      howIntro: "الحساب يعتمد على عناصر واضحة بدون تعقيد محاسبي.",
-      how1: "المواد: مجموع تكلفة المكونات.",
-      how2: "الوقت: أجر الساعة محول إلى دقائق العمل.",
-      how3: "الثابت: توزيع المصاريف الشهرية على الوحدات المتوقعة.",
-      how4: "التوصيل: يُحتسب حسب طريقة البيع إذا كان على التاجر.",
-      how5: "التعادل: عدد القطع اللازمة لتغطية المصاريف.",
+      howIntro: "ست خطوات واضحة من الإدخال حتى القرار.",
+      howStep1: "المواد: نحسب تكلفة كل مكوّن في الوحدة.",
+      howStep2: "الوقت: نحول أجر الساعة إلى تكلفة دقائق العمل.",
+      howStep3: "الثابت: نوزع المصاريف الشهرية على الوحدات المتوقعة.",
+      howStep4: "طرق البيع: نوسع الحساب حسب عدد القطع والتغليف.",
+      howStep5: "التوصيل: يدخل أو لا يدخل حسب من يتحمل التكلفة.",
+      howStep6: "النتائج: تكلفة حقيقية، حد أدنى، سعر مقترح، تعادل.",
 
       supportTitle: "دعم المشروع",
-      supportIntro: "تسعير+ مجاني حالياً لأننا نريد أن يستفيد أكبر عدد من أصحاب المشاريع الصغيرة.",
-      supportBody: "إذا ساعدتك الأداة، دعمك يساعدنا نطورها ليستفيد غيرك.",
-      supportPaypal: "دعم عبر PayPal",
-      supportStripe: "دعم عبر Stripe",
-      supportCoffee: "دعم عبر BuyMeACoffee",
+      supportIntro: "تسعير+ مجاني حالياً لأننا نريد أداة مفيدة ومباشرة للمشاريع الصغيرة.",
+      supportBody: "دعمك يساعدنا على تحسين المحتوى، تطوير الميزات، وإبقاء الأداة متاحة للجميع.",
+      supportLevelSimple: "دعم بسيط",
+      supportLevelMedium: "دعم متوسط",
+      supportLevelBig: "دعم كبير",
+      supportLevelSimpleDesc: "مساهمة خفيفة تشجّع استمرار المشروع.",
+      supportLevelMediumDesc: "يساعدنا في تطوير محتوى تعليمي جديد.",
+      supportLevelBigDesc: "يدعم تطوير خصائص أكبر للمرحلة القادمة.",
+      supportPaypal: "PayPal (قريباً)",
+      supportStripe: "Stripe (قريباً)",
+      supportCoffee: "BuyMeACoffee (قريباً)",
+      supportSoon: "روابط الدعم الفعلية ستُضاف قريباً.",
+      supportCopyLink: "انسخ رابط صفحة الدعم",
+      supportCopied: "تم نسخ رابط صفحة الدعم",
+      supportCopyFailed: "تعذر النسخ، يمكنك نسخ الرابط يدوياً",
 
       aboutTitle: "من نحن",
       aboutBody: "أنشأنا تسعير+ لأن كثيراً من المشاريع الصغيرة تبيع بدون صورة واضحة للتكلفة الحقيقية. هدفنا أن نجعل التسعير مفهوماً وبسيطاً ومتاحاً للجميع.",
@@ -98,69 +148,119 @@
       footerTerms: "Terms",
       footerContact: "Contact",
       footerVersion: "Project version v1.0",
-      ctaStart: "Start now",
-      ctaOpenTool: "Open tool",
-      ctaBackTool: "Back to tool",
-
       homeTitle: "Know your real price before you lose money without noticing",
-      homeSubtitle: "PricingPlus helps small businesses set clear, practical pricing decisions.",
+      homeSubtitle: "PricingPlus turns pricing from guessing into clear decisions. Calculate real cost first, then set a confident selling price.",
       valueOne: "True unit cost",
       valueTwo: "Minimum acceptable price",
       valueThree: "Break-even and monthly profit",
-      audienceTitle: "Who is this for?",
-      audienceBody: "Great for home bakers, handmade products, perfumes, printing, and Instagram sellers.",
+      audienceTitle: "Who is this tool for?",
+      audienceBody: "For home businesses and Instagram sellers: bakery, perfumes, handmade products, printing, and more.",
+
+      ctaStart: "Start now",
+      ctaOpenTool: "Open tool",
+      ctaOpenInTool: "Open in tool",
+      ctaTryTool: "Try in tool",
+      ctaBackTool: "Back to tool",
+      ctaLearnBasics: "Learn basics",
 
       learnTitle: "Learn Pricing",
-      learnSubtitle: "Simple learning content for small businesses",
+      learnSubtitle: "Simple Arabic-first content for small businesses",
       learnBasics: "Basics",
+      learnBasicsDesc: "Understand fixed vs variable costs and price with confidence.",
       learnMistakes: "Common mistakes",
+      learnMistakesDesc: "Top home-business mistakes and how to avoid them.",
       learnExamples: "Practical examples",
+      learnExamplesDesc: "Short real-use examples to apply quickly.",
 
-      basicsTitle: "Pricing basics",
-      basicsIntro: "Start with three elements: materials, your time, and monthly fixed costs.",
-      basicsPoint1: "Do not price only by competitor numbers.",
-      basicsPoint2: "Convert your working time into explicit cost.",
-      basicsPoint3: "Use a small safety margin when uncertain.",
+      basicsTitle: "Basics",
+      basicsIntro: "Five key concepts to start pricing correctly.",
+      conceptFixedTitle: "Fixed cost",
+      conceptFixedBody: "Monthly costs paid even with no sales.",
+      conceptFixedExample: "Example: $100 monthly rent.",
+      conceptVariableTitle: "Variable cost",
+      conceptVariableBody: "Cost that increases with production or sales.",
+      conceptVariableExample: "Example: $2 raw material per item.",
+      conceptTimeTitle: "Time cost",
+      conceptTimeBody: "Your labor value converted into per-item minutes.",
+      conceptTimeExample: "Example: 30 min at $10/h = $5.",
+      conceptWasteTitle: "Waste",
+      conceptWasteBody: "Production loss that increases real cost.",
+      conceptWasteExample: "Example: 10% waste raises materials from 10 to 11.",
+      conceptBreakEvenTitle: "Break-even",
+      conceptBreakEvenBody: "Units required to cover monthly costs.",
+      conceptBreakEvenExample: "Example: if unit contribution is $2 and fixed is $200, break-even is 100 units.",
 
       mistakesTitle: "Common mistakes",
-      mistakesIntro: "These issues appear often in small home businesses:",
-      mistake1: "Ignoring your own labor cost.",
-      mistake2: "Treating all costs as fixed or all as variable.",
-      mistake3: "Setting a selling price before checking break-even.",
+      mistakesIntro: "7 frequent mistakes in home and Instagram businesses:",
+      m1Title: "Pricing by competitor only",
+      m1Why: "Because visible prices look like a quick benchmark.",
+      m1Fix: "Calculate your own cost first, then compare.",
+      m2Title: "Ignoring owner labor",
+      m2Why: "Owners often treat their time as free.",
+      m2Fix: "Set a realistic hourly pay, even if low at start.",
+      m3Title: "Forgetting fixed costs",
+      m3Why: "They appear end-of-month, not per order.",
+      m3Fix: "Distribute fixed costs over expected monthly units.",
+      m4Title: "Assuming all products profit equally",
+      m4Why: "Products differ in labor, waste, and packaging.",
+      m4Fix: "Calculate each product and sales method separately.",
+      m5Title: "Random delivery handling",
+      m5Why: "Sometimes customer pays, sometimes merchant pays.",
+      m5Fix: "Set delivery mode clearly per sales method.",
+      m6Title: "Not updating prices",
+      m6Why: "Material prices change gradually.",
+      m6Fix: "Review your materials library monthly.",
+      m7Title: "No safety margin",
+      m7Why: "Overconfidence in estimates.",
+      m7Fix: "Add a small safety margin, especially early.",
 
       examplesTitle: "Practical examples",
-      examplesIntro: "Short examples to make pricing choices clearer.",
-      example1: "Single unit: covers core cost.",
-      example2: "Box of 6: adds packaging and often improves profit.",
-      example3: "Seasonal bundle: needs tighter margin monitoring.",
+      examplesIntro: "3 short examples for quick understanding:",
+      ex1Title: "Home bakery",
+      ex1Body: "Materials: sugar/flour/packaging. Time: 40 min. Fixed: rent/tools. Sales method: piece or box of 6. Delivery: per order.",
+      ex2Title: "Perfumes",
+      ex2Body: "Materials: fragrance oil/alcohol/bottle. Time: 20 min. Fixed: marketing/subscriptions. Sales method: 50ml or 100ml. Delivery: included in price.",
+      ex3Title: "Handmade products",
+      ex3Body: "Materials: craft supplies and packaging. Time: 60 min. Fixed: tools/equipment. Sales method: single piece or bundle. Delivery: customer pays separately.",
 
-      howTitle: "How does PricingPlus calculate?",
-      howIntro: "The model uses clear inputs without accounting jargon.",
-      how1: "Materials: sum of component costs.",
-      how2: "Time: hourly pay converted to labor minutes.",
-      how3: "Fixed: monthly costs distributed over expected units.",
-      how4: "Delivery: added per sales method when merchant pays.",
-      how5: "Break-even: required units to cover monthly costs.",
+      howTitle: "How PricingPlus calculates",
+      howIntro: "Six clear steps from inputs to decisions.",
+      howStep1: "Materials: cost of each component per unit.",
+      howStep2: "Time: hourly pay converted into labor minutes.",
+      howStep3: "Fixed: monthly costs allocated over expected units.",
+      howStep4: "Sales methods: expanded by units and packaging.",
+      howStep5: "Delivery: included or excluded by who pays.",
+      howStep6: "Results: true cost, minimum, suggested price, break-even.",
 
       supportTitle: "Support the project",
-      supportIntro: "PricingPlus is currently free to keep it accessible for small business owners.",
-      supportBody: "If this tool helped you, your support helps us improve it for others.",
-      supportPaypal: "Support via PayPal",
-      supportStripe: "Support via Stripe",
-      supportCoffee: "Support via BuyMeACoffee",
+      supportIntro: "PricingPlus is free to keep practical pricing accessible for small businesses.",
+      supportBody: "Your support helps us improve content, features, and keep the tool available.",
+      supportLevelSimple: "Simple support",
+      supportLevelMedium: "Medium support",
+      supportLevelBig: "Big support",
+      supportLevelSimpleDesc: "A light contribution to keep momentum.",
+      supportLevelMediumDesc: "Helps us create better learning content.",
+      supportLevelBigDesc: "Supports larger product improvements.",
+      supportPaypal: "PayPal (soon)",
+      supportStripe: "Stripe (soon)",
+      supportCoffee: "BuyMeACoffee (soon)",
+      supportSoon: "Real support links will be published soon.",
+      supportCopyLink: "Copy support page link",
+      supportCopied: "Support page link copied",
+      supportCopyFailed: "Copy failed, you can copy the URL manually",
 
       aboutTitle: "About us",
-      aboutBody: "We built PricingPlus because many small businesses sell without knowing their true cost. Our goal is to keep pricing practical, understandable, and accessible.",
+      aboutBody: "We built PricingPlus because many small businesses sell without knowing true cost. Our goal is practical, simple, accessible pricing.",
 
       privacyTitle: "Privacy policy",
       privacy1: "Project data is stored locally on your device at this stage.",
       privacy2: "We do not sell your data or share it with third parties.",
-      privacy3: "Cloud accounts may be added later with clear controls.",
+      privacy3: "Cloud accounts may be added later with clearer controls.",
 
       termsTitle: "Terms and conditions",
-      terms1: "The tool provides estimation outputs to support decisions.",
+      terms1: "The tool provides estimation outputs for decision support.",
       terms2: "You are responsible for final business pricing decisions.",
-      terms3: "By using the tool, you accept this guidance-only scope.",
+      terms3: "Using the tool means accepting this guidance scope.",
 
       loginTitle: "Login coming soon",
       loginBody: "Login will be available later for cloud save and sync.",
@@ -172,38 +272,74 @@
     }
   };
 
+  let activeLocale = "ar";
+
   function getInitialLocale() {
     const saved = localStorage.getItem(LOCALE_KEY);
     if (saved === "ar" || saved === "en") return saved;
     return "ar";
   }
 
-  function applyLocale(locale) {
-    document.documentElement.lang = locale;
-    document.documentElement.dir = locale === "ar" ? "rtl" : "ltr";
-    localStorage.setItem(LOCALE_KEY, locale);
+  function t(locale, key) {
+    return (TRANSLATIONS[locale] && TRANSLATIONS[locale][key]) || null;
+  }
 
-    const dict = TRANSLATIONS[locale] || TRANSLATIONS.ar;
+  function applyLocale(locale, options = {}) {
+    activeLocale = locale === "en" ? "en" : "ar";
+    document.documentElement.lang = activeLocale;
+    document.documentElement.dir = activeLocale === "ar" ? "rtl" : "ltr";
+
+    if (!options.skipPersist) {
+      localStorage.setItem(LOCALE_KEY, activeLocale);
+    }
+
     document.querySelectorAll("[data-i18n]").forEach((el) => {
       const key = el.getAttribute("data-i18n");
-      el.textContent = dict[key] || "";
+      if (!el.dataset.defaultText) {
+        el.dataset.defaultText = el.textContent;
+      }
+      const translated = t(activeLocale, key);
+      el.textContent = translated == null ? el.dataset.defaultText : translated;
     });
 
     document.querySelectorAll(".lang-btn").forEach((btn) => {
-      btn.classList.toggle("active", btn.dataset.lang === locale);
-      btn.setAttribute("aria-pressed", btn.dataset.lang === locale ? "true" : "false");
+      const isActive = btn.dataset.lang === activeLocale;
+      btn.classList.toggle("active", isActive);
+      btn.setAttribute("aria-pressed", isActive ? "true" : "false");
+    });
+  }
+
+  function bindCopySupportLink() {
+    const copyBtn = document.getElementById("copySupportLinkBtn");
+    if (!copyBtn) return;
+
+    copyBtn.addEventListener("click", async () => {
+      const messageOk = t(activeLocale, "supportCopied");
+      const messageFail = t(activeLocale, "supportCopyFailed");
+      try {
+        await navigator.clipboard.writeText(window.location.origin + "/support/");
+        alert(messageOk);
+      } catch (_) {
+        alert(messageFail);
+      }
     });
   }
 
   document.addEventListener("DOMContentLoaded", () => {
-    const initial = getInitialLocale();
-    applyLocale(initial);
+    applyLocale(getInitialLocale());
+    bindCopySupportLink();
 
     document.querySelectorAll(".lang-btn").forEach((btn) => {
       btn.addEventListener("click", () => {
-        const locale = btn.dataset.lang === "en" ? "en" : "ar";
-        applyLocale(locale);
+        applyLocale(btn.dataset.lang === "en" ? "en" : "ar");
       });
+    });
+
+    window.addEventListener("storage", (event) => {
+      if (event.key !== LOCALE_KEY) return;
+      const next = event.newValue === "en" ? "en" : "ar";
+      if (next === activeLocale) return;
+      applyLocale(next, { skipPersist: true });
     });
   });
 })();
