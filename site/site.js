@@ -354,10 +354,59 @@
     });
   }
 
+  // === Mobile Header Navigation ===
+  function bindMobileNav() {
+    const navToggle = document.querySelector(".nav-toggle");
+    const siteNav = document.getElementById("siteNav");
+    
+    if (!navToggle || !siteNav) return;
+
+    function closeNav() {
+      siteNav.classList.remove("is-open");
+      navToggle.setAttribute("aria-expanded", "false");
+    }
+
+    // Toggle menu
+    navToggle.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const isOpen = siteNav.classList.contains("is-open");
+      if (isOpen) {
+        closeNav();
+      } else {
+        siteNav.classList.add("is-open");
+        navToggle.setAttribute("aria-expanded", "true");
+      }
+    });
+
+    // Close on click outside
+    document.addEventListener("click", (e) => {
+      if (siteNav.classList.contains("is-open")) {
+        // If click is not inside the nav
+        if (!siteNav.contains(e.target) && !navToggle.contains(e.target)) {
+          closeNav();
+        }
+      }
+    });
+
+    // Close on link click inside nav
+    siteNav.querySelectorAll("a").forEach(link => {
+      link.addEventListener("click", closeNav);
+    });
+
+    // Close on escape key
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && siteNav.classList.contains("is-open")) {
+        closeNav();
+        navToggle.focus();
+      }
+    });
+  }
+
   document.addEventListener("DOMContentLoaded", () => {
     applyLocale(getInitialLocale());
     bindCopySupportLink();
     syncActiveNavLink();
+    bindMobileNav();
 
     document.querySelectorAll(".lang-btn").forEach((btn) => {
       btn.addEventListener("click", () => {
