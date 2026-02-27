@@ -277,7 +277,10 @@
   function getInitialLocale() {
     const saved = localStorage.getItem(LOCALE_KEY);
     if (saved === "ar" || saved === "en") return saved;
-    return "ar";
+    const browserLanguage = (navigator.language || "en").toLowerCase();
+    const locale = browserLanguage.startsWith("ar") ? "ar" : "en";
+    localStorage.setItem(LOCALE_KEY, locale);
+    return locale;
   }
 
   function t(locale, key) {
@@ -307,6 +310,10 @@
       btn.classList.toggle("active", isActive);
       btn.setAttribute("aria-pressed", isActive ? "true" : "false");
     });
+
+    window.dispatchEvent(new CustomEvent("pricingplus:locale-changed", {
+      detail: { locale: activeLocale }
+    }));
   }
 
   function bindCopySupportLink() {
@@ -325,9 +332,32 @@
     });
   }
 
+  function normalizePath(path) {
+    if (!path) return "/";
+    const clean = path.replace(/\/index\.html$/, "/");
+    if (clean.length > 1 && clean.endsWith("/")) return clean;
+    return clean;
+  }
+
+  function syncActiveNavLink() {
+    const currentPath = normalizePath(window.location.pathname);
+    document.querySelectorAll(".nav a[href]").forEach((link) => {
+      const href = link.getAttribute("href");
+      const linkPath = normalizePath(new URL(href, window.location.origin).pathname);
+      const isActive = linkPath === currentPath;
+      link.classList.toggle("active", isActive);
+      if (isActive) {
+        link.setAttribute("aria-current", "page");
+      } else {
+        link.removeAttribute("aria-current");
+      }
+    });
+  }
+
   document.addEventListener("DOMContentLoaded", () => {
     applyLocale(getInitialLocale());
     bindCopySupportLink();
+    syncActiveNavLink();
 
     document.querySelectorAll(".lang-btn").forEach((btn) => {
       btn.addEventListener("click", () => {
@@ -338,6 +368,12 @@
     window.addEventListener("storage", (event) => {
       if (event.key !== LOCALE_KEY) return;
       const next = event.newValue === "en" ? "en" : "ar";
+      if (next === activeLocale) return;
+      applyLocale(next, { skipPersist: true });
+    });
+
+    window.addEventListener("pricingplus:locale-changed", (event) => {
+      const next = event?.detail?.locale === "en" ? "en" : "ar";
       if (next === activeLocale) return;
       applyLocale(next, { skipPersist: true });
     });

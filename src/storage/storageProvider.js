@@ -38,4 +38,8 @@ export class StorageProvider {
   async deleteProduct(productId) {
     throw new Error("Not implemented");
   }
+
+  async clearAllData() {
+    throw new Error("Not implemented");
+  }
 }

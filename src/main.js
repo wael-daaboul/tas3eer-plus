@@ -37,7 +37,8 @@ const state = {
   selectedProductId: null,
   editingProductId: null,
   editingMaterialId: null,
-  uiMode: "simple"
+  uiMode: "simple",
+  demoMode: false
 };
 
 function createDefaultProject() {
@@ -62,8 +63,7 @@ function createDefaultProject() {
     hasSales: "no",
     salesUnitsInput: 0,
     salesUndefined: true,
-    uiMode: "simple",
-    demo: null
+    uiMode: "simple"
   };
 }
 
@@ -242,6 +242,7 @@ const refs = {
   languageSelect: document.getElementById("languageSelect"),
   siteLangButtons: [...document.querySelectorAll(".lang-btn")],
   siteNavHome: document.getElementById("siteNavHome"),
+  siteNavApp: document.getElementById("siteNavApp"),
   siteNavLearn: document.getElementById("siteNavLearn"),
   siteNavHow: document.getElementById("siteNavHow"),
   siteNavSupport: document.getElementById("siteNavSupport"),
@@ -320,6 +321,10 @@ const refs = {
   exportXlsxBtn: document.getElementById("exportXlsxBtn"),
   exportPdfBtn: document.getElementById("exportPdfBtn"),
   backToSiteLink: document.getElementById("backToSiteLink"),
+  startNewProjectBtn: document.getElementById("startNewProjectBtn"),
+  demoModeBanner: document.getElementById("demoModeBanner"),
+  demoModeTitle: document.getElementById("demoModeTitle"),
+  exitDemoModeBtn: document.getElementById("exitDemoModeBtn"),
   quickStartDemoBtn: document.getElementById("quickStartDemoBtn"),
   deleteDemoBtn: document.getElementById("deleteDemoBtn"),
   hourlyRateZeroWarning: document.getElementById("hourlyRateZeroWarning"),
@@ -398,8 +403,38 @@ function renderHourlyRateWarning() {
 
 function renderDemoDeleteButton() {
   if (!refs.deleteDemoBtn) return;
-  const show = Boolean(state.project?.demo?.isDemo);
+  const show = Boolean(state.demoMode);
   refs.deleteDemoBtn.classList.toggle("hidden", !show);
+}
+
+function renderDemoModeBanner() {
+  if (!refs.demoModeBanner) return;
+  refs.demoModeBanner.classList.toggle("hidden", !state.demoMode);
+}
+
+function updateDemoModeTexts() {
+  if (refs.demoModeTitle) {
+    refs.demoModeTitle.textContent = state.locale === "ar"
+      ? "أنت الآن في وضع التجربة"
+      : "You are in demo mode";
+  }
+  if (refs.exitDemoModeBtn) {
+    refs.exitDemoModeBtn.textContent = state.locale === "ar"
+      ? "ابدأ مشروعك الخاص"
+      : "Start your own project";
+  }
+}
+
+function getCleanAppUrl() {
+  const params = new URLSearchParams(window.location.search);
+  params.delete("demo");
+  const query = params.toString();
+  return `${window.location.pathname}${query ? `?${query}` : ""}${window.location.hash}`;
+}
+
+function exitDemoModeReload() {
+  state.demoMode = false;
+  window.location.replace(getCleanAppUrl());
 }
 
 function createInput(value = "", type = "text") {
@@ -635,9 +670,18 @@ function renderMaterialsLibraryList() {
     remove.className = "remove";
     remove.textContent = t("delete");
     remove.onclick = async () => {
-      await storage.deleteMaterial(material.id);
+      if (!state.demoMode) {
+        await storage.deleteMaterial(material.id);
+      }
       state.materialsLibrary = state.materialsLibrary.filter((m) => m.id !== material.id);
-      state.products = (await storage.listProducts()).map(normalizeProduct);
+      if (state.demoMode) {
+        state.products = state.products.map((product) => ({
+          ...product,
+          recipe: (product.recipe || []).filter((component) => component.materialId !== material.id)
+        }));
+      } else {
+        state.products = (await storage.listProducts()).map(normalizeProduct);
+      }
       renderMaterialsLibraryList();
       renderRecipeMaterialOptions();
       renderProductsList();
@@ -710,42 +754,141 @@ function renderVariantRows(variants) {
   const t = state.t;
   refs.variantsList.innerHTML = "";
 
+  function createHelp(arText, enText) {
+    const help = document.createElement("div");
+    help.className = "help";
+
+    const ar = document.createElement("span");
+    ar.className = "help-ar";
+    ar.textContent = arText;
+
+    const en = document.createElement("span");
+    en.className = "help-en";
+    en.textContent = enText;
+
+    help.append(ar, en);
+    return help;
+  }
+
   variants.forEach((variant) => {
+    const isAr = state.locale === "ar";
     const row = document.createElement("div");
-    row.className = "row";
+    row.className = "row variant-row";
     row.dataset.id = variant.id || uid("variant");
 
     const name = createInput(normalizeLegacyLabel(variant.name, "defaultVariantName"), "text");
-    name.placeholder = t("variantNameLabel");
+    name.placeholder = isAr ? "مثال: إنستغرام / متجر / جملة" : "Example: Instagram / Shop / Wholesale";
     name.className = "variant-name";
     const units = createInput(variant.unitsPerVariant ?? 1, "number");
     units.step = "1";
-    units.placeholder = t("variantUnitsLabel");
+    units.placeholder = isAr ? "مثال: 1" : "e.g. 1";
     units.className = "variant-units";
     const extra = createInput(variant.extraPackagingCost ?? 0, "number");
     extra.step = "0.01";
-    extra.placeholder = t("variantPackagingCostLabel");
+    extra.placeholder = isAr ? "مثال: 0" : "e.g. 0";
     extra.className = "variant-extra";
 
     const selling = createInput(variant.sellingPriceOverride ?? 0, "number");
     selling.step = "0.01";
-    selling.placeholder = `${t("variantManualPriceLabel")} (${t("optionalLabel")})`;
+    selling.placeholder = isAr ? "سعر اختياري" : "Optional price";
     selling.className = "variant-selling";
 
     const target = createInput(variant.pricingTargetPercent ?? "", "number");
     target.step = "0.1";
-    target.placeholder = `${t("variantProfitPercentLabel")} (${t("optionalLabel")})`;
+    target.placeholder = isAr ? "مثال: 25" : "e.g. 25";
     target.className = "variant-target";
 
-    const deliveryWrap = document.createElement("div");
-    deliveryWrap.className = "field";
+    const createField = (labelText, inputEl, helpAr = "", helpEn = "") => {
+      const field = document.createElement("label");
+      field.className = "field";
+      const label = document.createElement("span");
+      label.textContent = labelText;
+      field.append(label, inputEl);
+      if (helpAr || helpEn) field.append(createHelp(helpAr, helpEn));
+      return field;
+    };
+
+    const nameField = document.createElement("div");
+    nameField.className = "field";
+    nameField.append(
+      (() => {
+        const label = document.createElement("span");
+        label.textContent = t("variantNameLabel");
+        return label;
+      })(),
+      name,
+      createHelp(
+        "مثال: إنستغرام / متجر / جملة",
+        "Example: Instagram / Shop / Wholesale / Event"
+      )
+    );
+
+    const unitsField = document.createElement("div");
+    unitsField.className = "field";
+    unitsField.append(
+      (() => {
+        const label = document.createElement("span");
+        label.textContent = t("variantUnitsLabel");
+        return label;
+      })(),
+      units,
+      createHelp(
+        "اكتب 1 إذا تبيع قطعة واحدة",
+        "Enter 1 if you usually sell one item"
+      )
+    );
+
+    const extraField = document.createElement("div");
+    extraField.className = "field";
+    extraField.append(
+      (() => {
+        const label = document.createElement("span");
+        label.textContent = t("variantPackagingCostLabel");
+        return label;
+      })(),
+      extra,
+      createHelp(
+        "اكتب 0 إذا لا توجد عمولة",
+        "Platform fee/commission for this method (0 if none)"
+      )
+    );
+
+    const sellingField = createField(
+      t("variantManualPriceLabel"),
+      selling,
+      "سعر بيع يدوي لهذه الطريقة (اختياري)",
+      "Optional manual price for this method"
+    );
+
+    const targetField = document.createElement("div");
+    targetField.className = "field";
+    targetField.append(
+      (() => {
+        const label = document.createElement("span");
+        label.textContent = t("variantProfitPercentLabel");
+        return label;
+      })(),
+      target,
+      createHelp(
+        "ربح مختلف لهذه الطريقة (اختياري)",
+        "Optional custom margin for this method only (e.g., wholesale lower margin)"
+      )
+    );
+
+    const deliveryWrap = document.createElement("section");
+    deliveryWrap.className = "variant-delivery";
+
+    const deliveryToggleRow = document.createElement("div");
+    deliveryToggleRow.className = "variant-delivery-toggle-row delivery-toggle";
 
     const deliveryToggleLabel = document.createElement("label");
+    deliveryToggleLabel.className = "variant-delivery-toggle-label";
     const deliveryToggle = document.createElement("input");
     deliveryToggle.type = "checkbox";
     deliveryToggle.className = "variant-delivery-toggle";
     deliveryToggle.checked = Boolean(variant.hasDelivery);
     deliveryToggleLabel.append(deliveryToggle, document.createTextNode(` ${t("variantDeliveryHas")}`));
+    deliveryToggleRow.append(deliveryToggleLabel);
 
     const deliveryMode = document.createElement("select");
     deliveryMode.className = "variant-delivery-mode";
@@ -763,7 +906,7 @@ function renderVariantRows(variants) {
 
     const deliveryCost = createInput(variant.deliveryCost ?? 0, "number");
     deliveryCost.step = "0.01";
-    deliveryCost.placeholder = t("variantDeliveryCostLabel");
+    deliveryCost.placeholder = isAr ? "مثال: 3.5" : "e.g. 3.5";
     deliveryCost.className = "variant-delivery-cost";
 
     const deliveryBasis = document.createElement("select");
@@ -779,41 +922,104 @@ function renderVariantRows(variants) {
     });
     deliveryBasis.value = variant.deliveryCostBasis || "perOrder";
 
-    const deliveryModeField = document.createElement("label");
+    const deliveryModeField = document.createElement("div");
     deliveryModeField.className = "field";
     const deliveryModeText = document.createElement("span");
     deliveryModeText.textContent = t("variantDeliveryModeLabel");
-    deliveryModeField.append(deliveryModeText, deliveryMode);
+    const deliveryTipWrap = document.createElement("span");
+    deliveryTipWrap.className = "variant-tip-wrap";
+    const deliveryTipBtn = document.createElement("button");
+    deliveryTipBtn.type = "button";
+    deliveryTipBtn.className = "tip";
+    deliveryTipBtn.textContent = "?";
+    deliveryTipBtn.setAttribute("aria-label", "Delivery payer help");
+    const deliveryTipBox = document.createElement("span");
+    deliveryTipBox.className = "tip-box";
+    const tipAr = document.createElement("span");
+    tipAr.className = "help-ar";
+    tipAr.textContent = "الزبون يدفع: لا يؤثر على ربحك. أنت تدفع: تُحسب من تكاليفك.";
+    const tipEn = document.createElement("span");
+    tipEn.className = "help-en";
+    tipEn.textContent = "Customer pays: doesn’t reduce profit. You pay: counted as your cost.";
+    deliveryTipBox.append(tipAr, tipEn);
+    deliveryTipWrap.append(deliveryTipBtn, deliveryTipBox);
+    const deliveryModeLabel = document.createElement("div");
+    deliveryModeLabel.className = "variant-delivery-label";
+    deliveryModeLabel.append(deliveryModeText, deliveryTipWrap);
+    deliveryModeField.append(
+      deliveryModeLabel,
+      deliveryMode,
+      createHelp(
+        "اختر من يتحمل تكلفة التوصيل",
+        "Select who pays the delivery cost"
+      )
+    );
 
-    const deliveryCostField = document.createElement("label");
+    const deliveryCostField = document.createElement("div");
     deliveryCostField.className = "field";
     const deliveryCostText = document.createElement("span");
     deliveryCostText.textContent = t("variantDeliveryCostLabel");
-    deliveryCostField.append(deliveryCostText, deliveryCost);
+    deliveryCostField.append(
+      deliveryCostText,
+      deliveryCost,
+      createHelp(
+        "متوسط تكلفة التوصيل",
+        "Average delivery cost per order"
+      )
+    );
 
-    const deliveryBasisField = document.createElement("label");
+    const deliveryBasisField = document.createElement("div");
     deliveryBasisField.className = "field";
     const deliveryBasisText = document.createElement("span");
     deliveryBasisText.textContent = t("variantDeliveryBasisLabel");
-    deliveryBasisField.append(deliveryBasisText, deliveryBasis);
+    deliveryBasisField.append(
+      deliveryBasisText,
+      deliveryBasis,
+      createHelp(
+        "تُحسب تكلفة التوصيل لكل: طلب / قطعة",
+        "Delivery cost applies per: order / item"
+      )
+    );
 
     const deliveryFields = document.createElement("div");
-    deliveryFields.className = "grid-3";
+    deliveryFields.className = "grid-3 variant-delivery-controls";
     deliveryFields.append(deliveryModeField, deliveryCostField, deliveryBasisField);
     deliveryFields.classList.toggle("hidden", !deliveryToggle.checked);
 
     deliveryToggle.addEventListener("change", () => {
       deliveryFields.classList.toggle("hidden", !deliveryToggle.checked);
     });
-    deliveryWrap.append(deliveryToggleLabel, deliveryFields);
+    deliveryWrap.append(deliveryToggleRow, deliveryFields);
+
+    const mainBlock = document.createElement("section");
+    mainBlock.className = "variant-main";
+    mainBlock.append(nameField, unitsField, extraField);
+
+    const advancedToggle = document.createElement("button");
+    advancedToggle.type = "button";
+    advancedToggle.className = "variant-advanced-toggle btn btn-secondary";
+    advancedToggle.textContent = state.locale === "ar" ? "⚙ خيارات متقدمة" : "⚙ Advanced options";
+    advancedToggle.setAttribute("aria-expanded", "false");
+    mainBlock.append(advancedToggle);
+
+    const metaBlock = document.createElement("section");
+    metaBlock.className = "variant-meta variant-advanced";
+    metaBlock.append(sellingField, targetField);
 
     const remove = document.createElement("button");
     remove.type = "button";
     remove.className = "remove";
+    remove.classList.add("variant-remove");
     remove.textContent = t("remove");
     remove.onclick = () => row.remove();
+    metaBlock.append(remove);
 
-    row.append(name, units, extra, selling, target, deliveryWrap, remove);
+    advancedToggle.addEventListener("click", () => {
+      const isOpen = metaBlock.classList.toggle("is-open");
+      advancedToggle.setAttribute("aria-expanded", String(isOpen));
+    });
+
+    row.append(mainBlock, deliveryWrap, metaBlock);
     refs.variantsList.append(row);
   });
 }
@@ -941,7 +1147,9 @@ function renderProductsList() {
     remove.className = "remove";
     remove.textContent = t("delete");
     remove.onclick = async () => {
-      await storage.deleteProduct(product.id);
+      if (!state.demoMode) {
+        await storage.deleteProduct(product.id);
+      }
       state.products = state.products.filter((p) => p.id !== product.id);
       if (state.selectedProductId === product.id) {
         state.selectedProductId = state.products[0]?.id ?? null;
@@ -1016,7 +1224,9 @@ async function saveSettings() {
   }
 
   state.project = project;
-  await storage.saveProject(project);
+  if (!state.demoMode) {
+    await storage.saveProject(project);
+  }
   setFeedback(t("feedbackSaved"));
 }
 
@@ -1035,7 +1245,9 @@ async function saveMaterial(event) {
     return;
   }
 
-  await storage.upsertMaterial(material);
+  if (!state.demoMode) {
+    await storage.upsertMaterial(material);
+  }
   const idx = state.materialsLibrary.findIndex((m) => m.id === material.id);
   if (idx >= 0) state.materialsLibrary[idx] = material;
   else state.materialsLibrary.push(material);
@@ -1098,7 +1310,9 @@ async function saveProduct(event) {
     return;
   }
 
-  await storage.upsertProduct(product);
+  if (!state.demoMode) {
+    await storage.upsertProduct(product);
+  }
   const idx = state.products.findIndex((p) => p.id === product.id);
   if (idx >= 0) state.products[idx] = product;
   else state.products.unshift(product);
@@ -1112,27 +1326,13 @@ async function saveProduct(event) {
 
 async function applyDemoSeed(demoKey) {
   const demo = buildDemoSeed(demoKey);
-  const demoProject = {
+  state.demoMode = true;
+  state.project = {
     ...demo.project,
-    localeMode: state.locale,
-    demo: {
-      isDemo: true,
-      key: demoKey,
-      productIds: [demo.product.id],
-      materialIds: demo.materials.map((item) => item.id)
-    }
+    localeMode: state.locale
   };
-
-  state.project = demoProject;
-  await storage.saveProject(demoProject);
-
-  for (const material of demo.materials) {
-    await storage.upsertMaterial(material);
-  }
-  await storage.upsertProduct(demo.product);
-
-  state.materialsLibrary = await storage.listMaterials();
-  state.products = (await storage.listProducts()).map(normalizeProduct);
+  state.materialsLibrary = demo.materials.map((material) => ({ ...material }));
+  state.products = [normalizeProduct(demo.product)];
   state.selectedProductId = demo.product.id;
 
   applyLocale(state.locale);
@@ -1143,75 +1343,212 @@ async function applyDemoSeed(demoKey) {
   refs.resultProductSelect.value = demo.product.id;
   refs.resultSellingPrice.value = "0";
   renderResults();
+  renderDemoModeBanner();
   renderDemoDeleteButton();
   setFeedback(state.t("feedbackDemoApplied"));
 }
 
 async function deleteCurrentDemoIfAny() {
-  const demoMeta = state.project?.demo;
-  if (!demoMeta?.isDemo) return;
-  const ok = window.confirm(state.t("confirmDeleteDemo"));
-  if (!ok) return;
-
-  const demoProductIds = new Set(demoMeta.productIds || []);
-  const demoMaterialIds = new Set(demoMeta.materialIds || []);
-
-  for (const productId of demoProductIds) {
-    await storage.deleteProduct(productId);
-  }
-
-  const remainingProducts = (await storage.listProducts()).map(normalizeProduct);
-  const usedMaterialIds = new Set();
-  remainingProducts.forEach((product) => {
-    (product.recipe || []).forEach((component) => usedMaterialIds.add(component.materialId));
-  });
-
-  for (const materialId of demoMaterialIds) {
-    if (!usedMaterialIds.has(materialId)) {
-      await storage.deleteMaterial(materialId);
-    }
-  }
-
-  state.materialsLibrary = await storage.listMaterials();
-  state.products = (await storage.listProducts()).map(normalizeProduct);
-  state.project = { ...state.project, demo: null };
-  await storage.saveProject(state.project);
-  state.selectedProductId = state.products[0]?.id ?? null;
-
-  fillSettingsFromState();
-  renderMaterialsLibraryList();
-  renderRecipeMaterialOptions();
-  renderProductsList();
-  renderProductPicker();
-  renderDemoDeleteButton();
-  navigate("settings");
-  setFeedback(state.t("feedbackDemoDeleted"));
+  if (!state.demoMode) return;
+  exitDemoModeReload();
 }
 
 async function consumeDemoFromQuery() {
-  const url = new URL(window.location.href);
-  const demo = url.searchParams.get("demo");
+  const params = new URLSearchParams(window.location.search);
+  const demo = params.get("demo");
   if (!demo) return;
   if (!["bakery", "perfume", "handmade"].includes(demo)) return;
 
   await applyDemoSeed(demo);
-  url.searchParams.delete("demo");
-  const query = url.searchParams.toString();
-  const finalUrl = `${url.pathname}${query ? `?${query}` : ""}${url.hash}`;
+  params.delete("demo");
+  const query = params.toString();
+  const finalUrl = `${window.location.pathname}${query ? `?${query}` : ""}${window.location.hash}`;
   window.history.replaceState({}, "", finalUrl);
+}
+
+function getResetProjectLabel(locale) {
+  return locale === "ar" ? "🔄 بدء مشروع جديد" : "🔄 Start New Project";
+}
+
+function getResetProjectConfirm(locale) {
+  return locale === "ar"
+    ? "سيتم حذف بيانات المشروع الحالية والبدء من جديد. هل تريد المتابعة؟"
+    : "This will clear current project data and start fresh. Do you want to continue?";
+}
+
+async function resetProjectAndReload() {
+  const confirmed = window.confirm(getResetProjectConfirm(state.locale));
+  if (!confirmed) return;
+  if (state.demoMode) {
+    exitDemoModeReload();
+    return;
+  }
+  await storage.clearAllData();
+  window.location.replace(getCleanAppUrl());
 }
 
 function renderResults() {
   const t = state.t;
+  const isAr = state.locale === "ar";
   const product = state.products.find((p) => p.id === state.selectedProductId);
   if (!product) return;
 
   const sellingPrice = toNumber(refs.resultSellingPrice.value, 0);
   const metrics = buildProductMetrics(state.project, product, state.materialsLibrary, sellingPrice);
+  const allProductsSummary = document.getElementById("allProductsSummary");
+  const productsCompare = document.getElementById("productsCompare");
+  const unitResultsTitle = document.getElementById("unitResultsTitle");
+  const variantResultsTitle = document.getElementById("variantResultsTitle");
+  const unitResultsSubtitle = document.getElementById("unitResultsSubtitle");
+  const variantResultsSubtitle = document.getElementById("variantResultsSubtitle");
+  const unitResultsBadge = document.getElementById("unitResultsBadge");
+  const variantResultsBadge = document.getElementById("variantResultsBadge");
+  const unitSectionHeadline = unitResultsTitle?.closest(".section-headline");
+  const variantSectionHeadline = variantResultsTitle?.closest(".section-headline");
 
   refs.resultsGrid.innerHTML = "";
   refs.variantCards.innerHTML = "";
+  if (allProductsSummary) allProductsSummary.innerHTML = "";
+  if (productsCompare) productsCompare.innerHTML = "";
   refs.calculationDetails.classList.add("hidden");
+
+  const unitSubtitle = isAr
+    ? "هذه النتائج عامة للمنتج بدون احتساب تكاليف طريقة بيع محددة (توصيل/تغليف/عمولة)."
+    : "Base product results without any specific selling method costs (delivery/packaging/fees).";
+  const variantSubtitle = isAr
+    ? "هذه النتائج تشمل التكاليف الخاصة بكل طريقة بيع (مثل التوصيل، التغليف، عمولة المنصة)."
+    : "These results include each selling method's specific costs (delivery, packaging, platform fees).";
+
+  if (unitResultsSubtitle) unitResultsSubtitle.textContent = unitSubtitle;
+  if (variantResultsSubtitle) variantResultsSubtitle.textContent = variantSubtitle;
+  if (unitResultsBadge) unitResultsBadge.textContent = isAr ? "أساسي" : "Baseline";
+  if (variantResultsBadge) variantResultsBadge.textContent = isAr ? "حسب الطريقة" : "Per method";
+
+  const getDeltaLine = (variantMetrics) => {
+    const deltaDrivers = [];
+    if (toNumber(variantMetrics.extraPackagingCost, 0) > 0) {
+      deltaDrivers.push(`${isAr ? "تغليف/رسوم" : "Packaging/fees"} +${formatMoney(variantMetrics.extraPackagingCost, state.project.currencyCode, state.locale)}`);
+    }
+    if (variantMetrics.hasDelivery && variantMetrics.deliveryAffectsProfit && toNumber(variantMetrics.deliveryCostApplied, 0) > 0) {
+      deltaDrivers.push(`${isAr ? "توصيل" : "Delivery"} +${formatMoney(variantMetrics.deliveryCostApplied, state.project.currencyCode, state.locale)}${isAr ? " (يتحمله التاجر)" : " (merchant-paid)"}`);
+    }
+    const customerDeliveryNote = variantMetrics.hasDelivery && !variantMetrics.deliveryAffectsProfit
+      ? (isAr
+        ? "التوصيل: يدفعه الزبون (لا يؤثر على ربحك)"
+        : "Delivery: paid by customer (does not affect profit)")
+      : "";
+
+    return deltaDrivers.length
+      ? `${isAr ? "يشمل:" : "Includes:"} ${deltaDrivers.join(" • ")}${customerDeliveryNote ? ` • ${customerDeliveryNote}` : ""}`
+      : (customerDeliveryNote || (isAr ? "لا توجد تكاليف إضافية لهذه الطريقة." : "No extra costs for this method."));
+  };
+
+  const setSingleResultsVisibility = (visible) => {
+    refs.statusBadge.classList.toggle("hidden", !visible);
+    refs.resultsGrid.classList.toggle("hidden", !visible);
+    refs.variantCards.classList.toggle("hidden", !visible);
+    refs.monthlyTable.classList.toggle("hidden", !visible);
+    refs.calculationDetails.classList.toggle("hidden", true);
+    unitSectionHeadline?.classList.toggle("hidden", !visible);
+    variantSectionHeadline?.classList.toggle("hidden", !visible);
+    unitResultsSubtitle?.classList.toggle("hidden", !visible);
+    variantResultsSubtitle?.classList.toggle("hidden", !visible);
+    allProductsSummary?.classList.toggle("hidden", visible);
+    productsCompare?.classList.toggle("hidden", visible);
+  };
+
+  if (state.products.length > 1) {
+    setSingleResultsVisibility(false);
+
+    const productsMetrics = state.products.map((item) => ({
+      product: item,
+      metrics: buildProductMetrics(state.project, item, state.materialsLibrary, sellingPrice)
+    }));
+
+    const totalMonthlyProfit = productsMetrics.reduce((sum, entry) => sum + (Number.isFinite(entry.metrics.monthlyProfit) ? entry.metrics.monthlyProfit : 0), 0);
+    const expectedSales = Math.max(0, toNumber(state.project.expectedMonthlySales, 0));
+    const revenueAvailable = expectedSales > 0 && productsMetrics.every((entry) => Number.isFinite(entry.metrics.sellingPrice));
+    const totalRevenue = revenueAvailable
+      ? productsMetrics.reduce((sum, entry) => sum + (entry.metrics.sellingPrice * expectedSales), 0)
+      : null;
+
+    if (allProductsSummary) {
+      allProductsSummary.classList.remove("hidden");
+      allProductsSummary.innerHTML = `
+        <div class="results-summary-head">
+          <h3>${isAr ? "ملخص جميع المنتجات" : "All products summary"}</h3>
+          <span class="badge scope-badge">${isAr ? `عدد المنتجات: ${state.products.length}` : `Products: ${state.products.length}`}</span>
+        </div>
+        <div class="results-summary-grid">
+          <article class="metric">
+            <div class="name">${t("metricMonthlyProfit")}</div>
+            <div class="value">${formatMoney(totalMonthlyProfit, state.project.currencyCode, state.locale)}</div>
+          </article>
+          ${totalRevenue === null
+            ? ""
+            : `<article class="metric">
+                <div class="name">${isAr ? "إجمالي الإيراد الشهري المتوقع" : "Total expected monthly revenue"}</div>
+                <div class="value">${formatMoney(totalRevenue, state.project.currencyCode, state.locale)}</div>
+              </article>`}
+        </div>
+      `;
+    }
+
+    if (productsCompare) {
+      productsCompare.classList.remove("hidden");
+      const tableTitle = document.createElement("h3");
+      tableTitle.textContent = isAr ? "مقارنة المنتجات" : "Products comparison";
+      productsCompare.append(tableTitle);
+
+      productsMetrics.forEach(({ product: productItem, metrics: productMetrics }) => {
+        const row = document.createElement("article");
+        row.className = "product-row";
+
+        const productStatus = getProfitStatus(productMetrics.variantMetrics[0] || productMetrics);
+        const variantDetails = productMetrics.variantMetrics.map((variantMetrics) => `
+          <div class="product-variant-row">
+            <div class="metric-head">
+              <strong>${normalizeLegacyLabel(variantMetrics.name, "defaultVariantName")}</strong>
+              <span class="badge scope-badge">${isAr ? "حسب الطريقة" : "Per method"}</span>
+            </div>
+            <div class="product-variant-grid">
+              <div>${t("metricTrueUnitCost")}: <strong>${formatMoney(variantMetrics.variantUnitCost, state.project.currencyCode, state.locale)}</strong></div>
+              <div>${t("metricMinimumAcceptablePrice")}: <strong>${formatMoney(variantMetrics.minimumAcceptablePriceVariant, state.project.currencyCode, state.locale)}</strong></div>
+              <div>${t("metricSuggestedPrice")}: <strong>${formatMoney(variantMetrics.suggestedPriceVariant, state.project.currencyCode, state.locale)}</strong></div>
+              <div>${t("metricBreakEvenUnits")}: <strong>${Number.isFinite(variantMetrics.breakEvenUnitsVariant) ? formatNumber(variantMetrics.breakEvenUnitsVariant, state.locale, 2) : t("breakEvenImpossible")}</strong></div>
+            </div>
+            <div class="delta-line">${getDeltaLine(variantMetrics)}</div>
+          </div>
+        `).join("");
+
+        row.innerHTML = `
+          <div class="product-row-head">
+            <h4>${productItem.name}</h4>
+            <span class="badge ${productStatus}">${t(productStatus === "green" ? "statusGreen" : productStatus === "yellow" ? "statusYellow" : "statusRed")}</span>
+          </div>
+          <div class="product-row-grid">
+            <div><span class="muted">${t("metricTrueUnitCost")}</span><strong>${formatMoney(productMetrics.trueUnitCost, state.project.currencyCode, state.locale)}</strong></div>
+            <div><span class="muted">${t("metricMinimumAcceptablePrice")}</span><strong>${formatMoney(productMetrics.minimumAcceptablePrice, state.project.currencyCode, state.locale)}</strong></div>
+            <div><span class="muted">${t("metricSuggestedPrice")}</span><strong>${formatMoney(productMetrics.suggestedPrice, state.project.currencyCode, state.locale)}</strong></div>
+            <div><span class="muted">${t("metricBreakEvenUnits")}</span><strong>${Number.isFinite(productMetrics.breakEvenUnits) ? formatNumber(productMetrics.breakEvenUnits, state.locale, 2) : t("breakEvenImpossible")}</strong></div>
+            <div><span class="muted">${t("metricMonthlyProfit")}</span><strong>${formatMoney(productMetrics.monthlyProfit, state.project.currencyCode, state.locale)}</strong></div>
+          </div>
+          <details class="product-variant-details">
+            <summary>${isAr ? "تفاصيل طرق البيع" : "Variant method details"}</summary>
+            <div class="product-variant-list">${variantDetails}</div>
+          </details>
+        `;
+        productsCompare.append(row);
+      });
+    }
+
+    refs.monthlyTable.innerHTML = "";
+    refs.calculationDetails.innerHTML = "";
+    setFeedback(t("feedbackCalculated"));
+    return;
+  }
+
+  setSingleResultsVisibility(true);
 
   const list = [
     [t("metricTrueUnitCost"), formatMoney(metrics.trueUnitCost, state.project.currencyCode, state.locale)],
@@ -1221,9 +1558,9 @@ function renderResults() {
     [t("metricMonthlyProfit"), formatMoney(metrics.monthlyProfit, state.project.currencyCode, state.locale)]
   ];
 
-  list.forEach(([name, value]) => {
+  list.forEach(([name, value], index) => {
     const box = document.createElement("article");
-    box.className = "metric";
+    box.className = index === 0 ? "metric metric-primary" : "metric";
     box.innerHTML = `<div class="name">${name}</div><div class="value">${value}</div>`;
     refs.resultsGrid.append(box);
   });
@@ -1245,10 +1582,15 @@ function renderResults() {
         : t("deliverySeparateInfo"))
       : t("variantDeliveryNone");
 
+    const deltaLine = getDeltaLine(variant);
+
     const card = document.createElement("article");
     card.className = "metric";
     card.innerHTML = `
-      <div class="name">${normalizeLegacyLabel(variant.name, "defaultVariantName")}</div>
+      <div class="metric-head">
+        <div class="name">${normalizeLegacyLabel(variant.name, "defaultVariantName")}</div>
+        <span class="badge scope-badge">${isAr ? "حسب الطريقة" : "Per method"}</span>
+      </div>
       <div>${t("metricTrueUnitCost")}: <strong>${formatMoney(variant.variantUnitCost, state.project.currencyCode, state.locale)}</strong></div>
       <div>${t("metricMinimumAcceptablePrice")}: <strong>${formatMoney(variant.minimumAcceptablePriceVariant, state.project.currencyCode, state.locale)}</strong></div>
       <div>${t("metricSuggestedPrice")}: <strong>${formatMoney(variant.suggestedPriceVariant, state.project.currencyCode, state.locale)}</strong></div>
@@ -1256,6 +1598,7 @@ function renderResults() {
       <div>${t("metricExtraPackaging")}: <strong>${formatMoney(variant.extraPackagingCost, state.project.currencyCode, state.locale)}</strong></div>
       <div>${t("deliveryLabel")}: <strong>${deliveryLine}</strong></div>
       <div class="muted">${deliveryCalcLine}</div>
+      <div class="delta-line">${deltaLine}</div>
       <div class="badge ${status}">${t(status === "green" ? "statusGreen" : status === "yellow" ? "statusYellow" : "statusRed")}</div>
     `;
     refs.variantCards.append(card);
@@ -1370,11 +1713,6 @@ function applyLocale(locale) {
     appSubtitle: "appSubtitle",
     languageLabel: "languageLabel",
     backToSiteLink: "backToSiteLink",
-    siteNavHome: "siteNavHome",
-    siteNavLearn: "siteNavLearn",
-    siteNavHow: "siteNavHow",
-    siteNavSupport: "siteNavSupport",
-    siteNavAbout: "siteNavAbout",
     exportCsvBtn: "exportCsv",
     exportXlsxBtn: "exportXlsx",
     exportPdfBtn: "exportPdf",
@@ -1478,6 +1816,8 @@ function applyLocale(locale) {
     const el = document.getElementById(id);
     if (el) el.textContent = t(key);
   });
+  if (refs.startNewProjectBtn) refs.startNewProjectBtn.textContent = getResetProjectLabel(locale);
+  updateDemoModeTexts();
 
   refs.hourlyRate.placeholder = t("hourlyRatePlaceholder");
   refs.hourlyRateTooltip.textContent = "?";
@@ -1504,6 +1844,7 @@ function applyLocale(locale) {
 
   refs.languageSelect.value = locale;
   setSiteLanguageButtons(locale);
+  renderDemoModeBanner();
   renderHourlyRateWarning();
   renderDemoDeleteButton();
 
@@ -1536,6 +1877,7 @@ function fillSettingsFromState() {
   renderCurrencySelect();
   renderSettingsLists();
   renderHourlyRateWarning();
+  renderDemoModeBanner();
   renderDemoDeleteButton();
 }
 
@@ -1548,13 +1890,7 @@ function bindEvents() {
     btn.addEventListener("click", () => navigate(btn.dataset.next));
   });
 
-  refs.languageSelect.addEventListener("change", async (event) => {
-    const next = event.target.value === "ar" ? "ar" : "en";
-    state.project.localeMode = next;
-    persistLocale(next);
-    await storage.saveProject(state.project);
-    applyLocale(next);
-  });
+  refs.languageSelect.disabled = true;
 
   refs.siteLangButtons.forEach((btn) => {
     btn.addEventListener("click", async () => {
@@ -1562,7 +1898,9 @@ function bindEvents() {
       if (next === state.locale) return;
       state.project.localeMode = next;
       persistLocale(next);
-      await storage.saveProject(state.project);
+      if (!state.demoMode) {
+        await storage.saveProject(state.project);
+      }
       applyLocale(next);
     });
   });
@@ -1663,6 +2001,8 @@ function bindEvents() {
   refs.exportCsvBtn.addEventListener("click", exportAllAsCsv);
   refs.exportXlsxBtn.addEventListener("click", exportAllAsXlsx);
   refs.exportPdfBtn.addEventListener("click", exportCurrentAsPdf);
+  refs.startNewProjectBtn?.addEventListener("click", resetProjectAndReload);
+  refs.exitDemoModeBtn?.addEventListener("click", exitDemoModeReload);
 
   window.addEventListener("storage", (event) => {
     if (event.key !== "pricingplus_locale") return;
@@ -1670,6 +2010,13 @@ function bindEvents() {
     if (next === state.locale) return;
     state.project.localeMode = next;
     applyLocale(next);
+  });
+
+  window.addEventListener("pricingplus:locale-changed", (event) => {
+    const locale = event?.detail?.locale === "en" ? "en" : "ar";
+    if (locale === state.locale) return;
+    state.project.localeMode = locale;
+    applyLocale(locale);
   });
 }
 
@@ -1689,14 +2036,15 @@ async function loadState() {
   const defaultProject = createDefaultProject();
   const storedProject = await storage.getProject();
   state.project = storedProject ? { ...defaultProject, ...storedProject } : { ...defaultProject };
+  if ("demo" in state.project) {
+    delete state.project.demo;
+  }
   ensureProjectFixedCosts(state.project);
 
   state.project.uiMode = state.project.uiMode === "advanced" ? "advanced" : "simple";
   state.uiMode = state.project.uiMode;
-
-  if (state.project.localeMode === "ar" || state.project.localeMode === "en") {
-    state.locale = state.project.localeMode;
-  }
+  state.project.localeMode = state.locale;
+  state.demoMode = false;
 
   state.materialsLibrary = await storage.listMaterials();
   state.products = (await storage.listProducts()).map(normalizeProduct);

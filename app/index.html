@@ -3,23 +3,39 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <script>
+    (function () {
+      var key = "pricingplus_locale";
+      var saved = localStorage.getItem(key);
+      var locale = saved === "ar" || saved === "en"
+        ? saved
+        : ((navigator.language || "en").toLowerCase().startsWith("ar") ? "ar" : "en");
+      if (saved !== "ar" && saved !== "en") {
+        localStorage.setItem(key, locale);
+      }
+      document.documentElement.lang = locale;
+      document.documentElement.dir = locale === "ar" ? "rtl" : "ltr";
+    })();
+  </script>
   <title>تسعير+</title>
   <meta name="description" content="تسعير+ أداة عربية بسيطة لحساب تكلفة المنتج والسعر المناسب ونقطة التعادل للمشاريع الصغيرة." />
   <meta property="og:title" content="تسعير+ | الأداة" />
   <meta property="og:description" content="احسب التكلفة الحقيقية والسعر الأدنى ونقطة التعادل بسرعة." />
   <link rel="stylesheet" href="../site/site.css" />
   <link rel="stylesheet" href="../styles.css" />
+  <script defer src="../site/site.js"></script>
 </head>
 <body>
   <header class="header compact">
     <div class="container header-inner">
-      <a class="brand" href="/index.html">تسعير+</a>
+      <a class="brand" href="/index.html" data-i18n="brand">تسعير+</a>
       <nav class="nav" aria-label="التنقل الرئيسي">
-        <a href="/index.html" id="siteNavHome">الرئيسية</a>
-        <a href="/learn/" id="siteNavLearn">تعلّم التسعير</a>
-        <a href="/how-it-works/" id="siteNavHow">كيف نحسب؟</a>
-        <a href="/support/" id="siteNavSupport">دعم المشروع</a>
-        <a href="/about/" id="siteNavAbout">من نحن</a>
+        <a href="/index.html" id="siteNavHome" data-i18n="navHome">الرئيسية</a>
+        <a href="/app/" id="siteNavApp" data-i18n="navApp">الأداة</a>
+        <a href="/learn/" id="siteNavLearn" data-i18n="navLearn">تعلّم التسعير</a>
+        <a href="/how-it-works/" id="siteNavHow" data-i18n="navHow">كيف نحسب؟</a>
+        <a href="/support/" id="siteNavSupport" data-i18n="navSupport">دعم المشروع</a>
+        <a href="/about/" id="siteNavAbout" data-i18n="navAbout">من نحن</a>
       </nav>
       <div class="lang-switch" aria-label="تبديل اللغة">
         <button class="lang-btn" data-lang="ar" type="button">AR</button>
@@ -33,10 +49,13 @@
       <div>
         <h1 id="appTitle">تسعير+</h1>
         <p id="appSubtitle" class="muted"></p>
-        <a href="/" id="backToSiteLink" class="btn btn-secondary">العودة للموقع</a>
+        <div class="actions">
+          <a href="/" id="backToSiteLink" class="btn btn-secondary">العودة للموقع</a>
+          <button id="startNewProjectBtn" type="button" class="btn btn-secondary">🔄 بدء مشروع جديد</button>
+        </div>
       </div>
       <div class="header-actions">
-        <label class="field compact">
+        <label class="field compact app-locale-control">
           <span id="languageLabel"></span>
           <select id="languageSelect">
             <option value="ar">العربية</option>
@@ -48,6 +67,11 @@
         <button id="exportPdfBtn" type="button"></button>
       </div>
     </header>
+
+    <section id="demoModeBanner" class="surface-muted demo-mode-banner hidden" role="status" aria-live="polite">
+      <strong id="demoModeTitle">أنت الآن في وضع التجربة</strong>
+      <button id="exitDemoModeBtn" type="button" class="btn btn-secondary">ابدأ مشروعك الخاص</button>
+    </section>
 
     <nav class="steps" aria-label="التنقل">
       <button type="button" class="step active" data-step="settings" id="stepSettings"></button>
@@ -357,11 +381,22 @@
         <button type="button" id="howCalculatedBtn"></button>
       </div>
 
+      <section id="allProductsSummary" class="results-summary hidden"></section>
+      <section id="productsCompare" class="products-compare hidden"></section>
+
       <div id="statusBadge" class="badge muted"></div>
-      <h3 id="unitResultsTitle"></h3>
+      <div class="section-headline">
+        <h3 id="unitResultsTitle"></h3>
+        <span id="unitResultsBadge" class="badge scope-badge">أساسي</span>
+      </div>
+      <p id="unitResultsSubtitle" class="section-subtitle"></p>
       <div id="resultsGrid" class="results-grid"></div>
 
-      <h3 id="variantResultsTitle"></h3>
+      <div class="section-headline">
+        <h3 id="variantResultsTitle"></h3>
+        <span id="variantResultsBadge" class="badge scope-badge">حسب الطريقة</span>
+      </div>
+      <p id="variantResultsSubtitle" class="section-subtitle"></p>
       <div id="variantCards" class="results-grid"></div>
       <div id="calculationDetails" class="list-block hidden"></div>
 

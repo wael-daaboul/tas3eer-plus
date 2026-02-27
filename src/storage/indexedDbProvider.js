@@ -326,4 +326,12 @@ export class IndexedDbProvider extends StorageProvider {
     tx.objectStore(STORE_PRODUCTS).delete(productId);
     await txDone(tx);
   }
+
+  async clearAllData() {
+    const tx = this.db.transaction([STORE_PROJECT, STORE_PRODUCTS, STORE_MATERIALS], "readwrite");
+    tx.objectStore(STORE_PROJECT).clear();
+    tx.objectStore(STORE_PRODUCTS).clear();
+    tx.objectStore(STORE_MATERIALS).clear();
+    await txDone(tx);
+  }
 }

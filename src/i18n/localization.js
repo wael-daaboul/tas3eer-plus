@@ -7,7 +7,9 @@ export function detectInitialLocale() {
   if (saved === "ar" || saved === "en") return saved;
 
   const browserLanguage = (navigator.language || "en").toLowerCase();
-  return browserLanguage.startsWith("ar") ? "ar" : "en";
+  const locale = browserLanguage.startsWith("ar") ? "ar" : "en";
+  localStorage.setItem(LOCALE_KEY, locale);
+  return locale;
 }
 
 export function persistLocale(locale) {
