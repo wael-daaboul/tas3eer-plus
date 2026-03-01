@@ -4,8 +4,6 @@ import {
   calculateMaterialBaseUnitCost
 } from "./engine/pricingEngine.js";
 import {
-  detectInitialLocale,
-  persistLocale,
   applyDocumentLocale,
   createTranslator
 } from "./i18n/localization.js";
@@ -15,6 +13,7 @@ import { formatMoney, formatNumber, toNumber } from "./utils/format.js";
 import { uid } from "./utils/id.js";
 
 const storage = new IndexedDbProvider();
+const LOCALE_KEY = "pricingplus_locale";
 
 const FIXED_COST_TEMPLATES = [
   { key: "fixedRent", hintKey: "fixedRentHint" },
@@ -28,7 +27,7 @@ const FIXED_COST_TEMPLATES = [
 ];
 
 const state = {
-  locale: detectInitialLocale(),
+  locale: "en",
   t: () => "",
   currencies: [],
   project: null,
@@ -40,6 +39,11 @@ const state = {
   uiMode: "simple",
   demoMode: false
 };
+
+function getCanonicalLocale() {
+  const locale = localStorage.getItem(LOCALE_KEY);
+  return locale === "ar" ? "ar" : "en";
+}
 
 function createDefaultProject() {
   return {
@@ -1892,19 +1896,6 @@ function bindEvents() {
 
   refs.languageSelect.disabled = true;
 
-  refs.siteLangButtons.forEach((btn) => {
-    btn.addEventListener("click", async () => {
-      const next = btn.dataset.lang === "en" ? "en" : "ar";
-      if (next === state.locale) return;
-      state.project.localeMode = next;
-      persistLocale(next);
-      if (!state.demoMode) {
-        await storage.saveProject(state.project);
-      }
-      applyLocale(next);
-    });
-  });
-
   refs.simpleModeBtn.addEventListener("click", () => applyUiMode("simple"));
   refs.advancedModeBtn.addEventListener("click", () => applyUiMode("advanced"));
 
@@ -2005,18 +1996,18 @@ function bindEvents() {
   refs.exitDemoModeBtn?.addEventListener("click", exitDemoModeReload);
 
   window.addEventListener("storage", (event) => {
-    if (event.key !== "pricingplus_locale") return;
-    const next = event.newValue === "en" ? "en" : "ar";
+    if (event.key !== LOCALE_KEY) return;
+    const next = getCanonicalLocale();
     if (next === state.locale) return;
     state.project.localeMode = next;
     applyLocale(next);
   });
 
-  window.addEventListener("pricingplus:locale-changed", (event) => {
-    const locale = event?.detail?.locale === "en" ? "en" : "ar";
-    if (locale === state.locale) return;
-    state.project.localeMode = locale;
-    applyLocale(locale);
+  window.addEventListener("pricingplus:locale-changed", () => {
+    const next = getCanonicalLocale();
+    if (next === state.locale) return;
+    state.project.localeMode = next;
+    applyLocale(next);
   });
 }
 
@@ -2052,9 +2043,10 @@ async function loadState() {
 }
 
 async function init() {
+  state.locale = getCanonicalLocale();
   await loadState();
   bindEvents();
-  applyLocale(state.locale);
+  applyLocale(getCanonicalLocale());
   fillSettingsFromState();
   resetMaterialForm();
   resetProductForm();
