@@ -1,11 +1,21 @@
 :root {
-  --bg: #f6f7f2;
+  --pp-blue: #2563EB;
+  --pp-text: #1F2937;
+  --pp-muted: #6B7280;
+  --pp-bg: #FFFFFF;
+  --pp-bg-soft: #F9FAFB;
+  --pp-border: #E5E7EB;
+  --pp-radius: 16px;
+  --pp-radius-sm: 12px;
+  --pp-focus: rgba(37, 99, 235, .25);
+
+  --bg: var(--pp-bg);
   --card: #ffffff;
-  --ink: #13211c;
-  --muted: #53635d;
-  --line: #d9ddd2;
-  --primary: #1f6f50;
-  --primary-soft: #d7efe4;
+  --ink: var(--pp-text);
+  --muted: var(--pp-muted);
+  --line: var(--pp-border);
+  --primary: var(--pp-blue);
+  --primary-soft: #EFF6FF;
   --danger: #9f2d2d;
   --warn: #8e6200;
   --ok: #1f7a4f;
@@ -22,9 +32,9 @@
   --radius-2: 14px;
   --radius-3: 18px;
 
-  --border-1: 1px solid rgba(0, 0, 0, 0.1);
-  --shadow-1: 0 8px 24px rgba(0, 0, 0, 0.08);
-  --shadow-2: 0 12px 36px rgba(0, 0, 0, 0.1);
+  --border-1: 1px solid var(--pp-border);
+  --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-2: 0 2px 8px rgba(0, 0, 0, 0.06);
 
   --font-xs: 12px;
   --font-sm: 14px;
@@ -37,7 +47,7 @@
   --control-pad-x: 14px;
   --control-pad-y: 10px;
 
-  --focus-ring: 0 0 0 3px rgba(30, 99, 255, 0.18);
+  --focus-ring: 0 0 0 3px var(--pp-focus);
 
   --radius: var(--radius-2);
   --shadow: var(--shadow-1);
@@ -49,8 +59,8 @@
 
 body {
   margin: 0;
-  font-family: "Tajawal", "Segoe UI", Tahoma, sans-serif;
-  background: radial-gradient(circle at top right, #eff8f2 0%, var(--bg) 48%, #f8f5ed 100%);
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji";
+  background: var(--pp-bg);
   color: var(--ink);
   font-size: var(--font-md);
   line-height: 1.5;
@@ -66,15 +76,23 @@ body {
   background: var(--card);
   border: var(--border-1);
   border-color: var(--line);
-  border-radius: var(--radius-2);
-  box-shadow: var(--shadow-1);
+  border-radius: var(--pp-radius);
+  box-shadow: none;
   padding: var(--space-4);
 }
 
 .surface-muted {
-  background: #f9fbf7;
-  border: 1px dashed var(--line);
-  border-radius: var(--radius-1);
+  background: var(--pp-bg-soft);
+  border: 1px solid var(--line);
+  border-radius: var(--pp-radius-sm);
+}
+
+a {
+  color: var(--pp-blue);
+}
+
+a:hover {
+  color: #1d4ed8;
 }
 
 .demo-mode-banner {
@@ -300,9 +318,9 @@ input[type="radio"]:focus-visible {
   min-height: var(--control-h);
   padding: var(--control-pad-y) var(--control-pad-x);
   border-radius: var(--radius-1);
-  border: 1px solid #b9dfcb;
-  background: var(--primary-soft);
-  color: var(--ink);
+  border: 1px solid var(--pp-blue);
+  background: var(--pp-blue);
+  color: #fff;
   text-decoration: none;
   font-weight: 600;
 }
@@ -314,11 +332,12 @@ input[type="radio"]:focus-visible {
 .app .quick-btn {
   border-color: var(--line);
   background: #fff;
-  color: var(--ink);
+  color: var(--pp-text);
 }
 
 .app .actions button:hover:not(:disabled) {
-  border-color: var(--primary);
+  border-color: #1d4ed8;
+  background: #1d4ed8;
 }
 
 button:disabled,
@@ -657,9 +676,9 @@ html[dir="rtl"] .variant-advanced-toggle {
 }
 
 .metric.metric-primary {
-  background: #f4fbf7;
-  border-color: #b9dfcb;
-  box-shadow: var(--shadow-1);
+  background: var(--pp-bg-soft);
+  border-color: #bfdbfe;
+  box-shadow: none;
   padding: var(--space-5);
 }
 
@@ -682,8 +701,8 @@ html[dir="rtl"] .variant-advanced-toggle {
   font-size: var(--font-xs);
   font-weight: 600;
   color: var(--muted);
-  background: #f4f7f2;
-  border-color: #dfe4d9;
+  background: var(--pp-bg-soft);
+  border-color: var(--line);
   padding: 2px var(--space-2);
 }
 
@@ -708,8 +727,8 @@ html[dir="rtl"] .variant-advanced-toggle {
   border: var(--border-1);
   border-color: var(--line);
   border-radius: var(--radius-2);
-  background: #fbfcfa;
-  box-shadow: var(--shadow-1);
+  background: var(--pp-bg-soft);
+  box-shadow: none;
   padding: var(--space-4);
 }
 
@@ -769,9 +788,9 @@ html[dir="rtl"] .variant-advanced-toggle {
 }
 
 .product-row-grid>div {
-  border: 1px solid #edf0e9;
+  border: 1px solid var(--line);
   border-radius: var(--radius-1);
-  background: #fafcf9;
+  background: var(--pp-bg-soft);
   padding: var(--space-2);
   display: grid;
   gap: 2px;
@@ -782,7 +801,7 @@ html[dir="rtl"] .variant-advanced-toggle {
 }
 
 .product-variant-details {
-  border-top: 1px solid #edf0e9;
+  border-top: 1px solid var(--line);
   padding-top: var(--space-2);
 }
 
@@ -799,9 +818,9 @@ html[dir="rtl"] .variant-advanced-toggle {
 }
 
 .product-variant-row {
-  border: 1px solid #edf0e9;
+  border: 1px solid var(--line);
   border-radius: var(--radius-1);
-  background: #fcfdfb;
+  background: var(--pp-bg-soft);
   padding: var(--space-2) var(--space-3);
 }
 
