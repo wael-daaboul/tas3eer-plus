@@ -11,10 +11,14 @@ import { IndexedDbProvider } from "./storage/indexedDbProvider.js";
 import { exportCsv, exportXlsx, exportPdf } from "./services/exportService.js";
 import { formatMoney, formatNumber, toNumber } from "./utils/format.js";
 import { uid } from "./utils/id.js";
-import { getSupabaseClient, hasSupabaseConfig } from "../site/supabaseClient.js";
+import { SUPABASE_URL, SUPABASE_ANON_KEY, getSupabaseClient, hasSupabaseConfig } from "../site/supabaseClient.js";
 
 const storage = new IndexedDbProvider();
 const LOCALE_KEY = "pricingplus_locale";
+const SYNC_PENDING_KEY = "pricingplus_sync_pending";
+const AUTO_SYNC_DEBOUNCE_MS = 3000;
+const AUTO_SYNC_THROTTLE_MS = 30000;
+const APP_VERSION = "1.0";
 
 const FIXED_COST_TEMPLATES = [
   { key: "fixedRent", hintKey: "fixedRentHint" },
@@ -40,7 +44,18 @@ const state = {
   uiMode: "simple",
   demoMode: false,
   supabase: null,
-  authUser: null
+  authUser: null,
+  authToken: "",
+  sync: {
+    status: "pending",
+    lastSyncAt: "",
+    dirty: false,
+    debounceId: null,
+    throttleId: null,
+    lastSyncRunAt: 0,
+    wrapApplied: false,
+    suspendWrites: false
+  }
 };
 
 function getCanonicalLocale() {
@@ -51,8 +66,14 @@ function getCanonicalLocale() {
 function getAuthCopy(locale) {
   if (locale === "ar") {
     return {
-      signIn: "تسجيل الدخول للمزامنة",
-      signedInAs: "الحساب",
+      signInOptional: "تسجيل الدخول (اختياري)",
+      syncStatusLabel: "حالة المزامنة",
+      syncUpToDate: "محدّث",
+      syncPending: "بانتظار المزامنة",
+      syncError: "خطأ",
+      syncInProgress: "جارٍ المزامنة",
+      lastSyncLabel: "آخر مزامنة",
+      lastSyncNever: "لم تتم بعد",
       syncNow: "مزامنة الآن",
       restore: "استعادة من السحابة",
       signOut: "تسجيل الخروج",
@@ -71,8 +92,14 @@ function getAuthCopy(locale) {
   }
 
   return {
-    signIn: "Sign in to sync",
-    signedInAs: "Signed in",
+    signInOptional: "Sign in (optional)",
+    syncStatusLabel: "Sync status",
+    syncUpToDate: "Up to date",
+    syncPending: "Pending",
+    syncError: "Error",
+    syncInProgress: "Syncing",
+    lastSyncLabel: "Last sync",
+    lastSyncNever: "Never",
     syncNow: "Sync now",
     restore: "Restore from cloud",
     signOut: "Sign out",
@@ -371,12 +398,14 @@ const refs = {
   exportPdfBtn: document.getElementById("exportPdfBtn"),
   authSyncPanel: document.getElementById("authSyncPanel"),
   authSignInBtn: document.getElementById("authSignInBtn"),
-  authSignedIn: document.getElementById("authSignedIn"),
-  authUserEmail: document.getElementById("authUserEmail"),
+  accountChipBtn: document.getElementById("accountChipBtn"),
+  authUserEmailShort: document.getElementById("authUserEmailShort"),
+  accountDropdown: document.getElementById("accountDropdown"),
+  syncStatusLine: document.getElementById("syncStatusLine"),
+  syncLastLine: document.getElementById("syncLastLine"),
   syncNowBtn: document.getElementById("syncNowBtn"),
   restoreCloudBtn: document.getElementById("restoreCloudBtn"),
   authSignOutBtn: document.getElementById("authSignOutBtn"),
-  authStatusText: document.getElementById("authStatusText"),
   backToSiteLink: document.getElementById("backToSiteLink"),
   startNewProjectBtn: document.getElementById("startNewProjectBtn"),
   demoModeBanner: document.getElementById("demoModeBanner"),
@@ -497,44 +526,75 @@ function exitDemoModeReload() {
 function updateAuthTexts() {
   if (!refs.authSyncPanel) return;
   const copy = getAuthCopy(state.locale);
-  if (refs.authSignInBtn) refs.authSignInBtn.textContent = copy.signIn;
+  if (refs.authSignInBtn) refs.authSignInBtn.textContent = copy.signInOptional;
   if (refs.syncNowBtn) refs.syncNowBtn.textContent = copy.syncNow;
   if (refs.restoreCloudBtn) refs.restoreCloudBtn.textContent = copy.restore;
   if (refs.authSignOutBtn) refs.authSignOutBtn.textContent = copy.signOut;
 }
 
+function shortEmail(email) {
+  const value = String(email || "").trim();
+  if (!value) return "";
+  if (value.length <= 24) return value;
+  return `${value.slice(0, 21)}...`;
+}
+
+function relativeTime(iso, locale) {
+  if (!iso) return getAuthCopy(locale).lastSyncNever;
+  const ts = new Date(iso).getTime();
+  if (!Number.isFinite(ts)) return getAuthCopy(locale).lastSyncNever;
+  const diffSec = Math.max(0, Math.floor((Date.now() - ts) / 1000));
+  if (diffSec < 60) return locale === "ar" ? "الآن" : "just now";
+  const diffMin = Math.floor(diffSec / 60);
+  if (diffMin < 60) return locale === "ar" ? `قبل ${diffMin} دقيقة` : `${diffMin} min ago`;
+  const diffHour = Math.floor(diffMin / 60);
+  if (diffHour < 24) return locale === "ar" ? `قبل ${diffHour} ساعة` : `${diffHour} h ago`;
+  const diffDay = Math.floor(diffHour / 24);
+  return locale === "ar" ? `قبل ${diffDay} يوم` : `${diffDay} d ago`;
+}
+
+function setSyncStatus(status) {
+  state.sync.status = status;
+}
+
+function refreshSyncLines() {
+  const copy = getAuthCopy(state.locale);
+  let statusText = copy.syncPending;
+  if (state.sync.status === "up_to_date") statusText = copy.syncUpToDate;
+  if (state.sync.status === "error") statusText = copy.syncError;
+  if (state.sync.status === "syncing") statusText = copy.syncInProgress;
+
+  if (refs.syncStatusLine) {
+    refs.syncStatusLine.textContent = `${copy.syncStatusLabel}: ${statusText}`;
+  }
+  if (refs.syncLastLine) {
+    refs.syncLastLine.textContent = `${copy.lastSyncLabel}: ${relativeTime(state.sync.lastSyncAt, state.locale)}`;
+  }
+}
+
 function renderAuthPanel() {
   if (!refs.authSyncPanel) return;
-  const copy = getAuthCopy(state.locale);
   const enabled = hasSupabaseConfig();
   const signedIn = Boolean(state.authUser);
 
-  refs.authSyncPanel.classList.toggle("hidden", false);
-  if (refs.authSignInBtn) refs.authSignInBtn.classList.toggle("hidden", signedIn);
-  if (refs.authSignedIn) refs.authSignedIn.classList.toggle("hidden", !signedIn);
-
-  if (refs.authSignInBtn) {
-    refs.authSignInBtn.href = "/login/";
-    refs.authSignInBtn.setAttribute("aria-disabled", enabled ? "false" : "true");
-    refs.authSignInBtn.classList.toggle("is-disabled", !enabled);
-  }
-
+  refs.authSyncPanel.classList.toggle("hidden", !enabled);
   if (!enabled) {
-    if (refs.authStatusText) refs.authStatusText.textContent = copy.unavailable;
+    closeAccountDropdown();
     return;
   }
+
+  if (refs.authSignInBtn) refs.authSignInBtn.classList.toggle("hidden", signedIn);
+  if (refs.accountChipBtn) refs.accountChipBtn.classList.toggle("hidden", !signedIn);
 
   if (!signedIn) {
-    if (refs.authStatusText) refs.authStatusText.textContent = copy.notSignedIn;
+    closeAccountDropdown();
     return;
   }
 
-  if (refs.authUserEmail) {
-    refs.authUserEmail.textContent = `${copy.signedInAs}: ${state.authUser.email || ""}`;
+  if (refs.authUserEmailShort) {
+    refs.authUserEmailShort.textContent = shortEmail(state.authUser.email);
   }
-  if (refs.authStatusText && !refs.authStatusText.textContent) {
-    refs.authStatusText.textContent = "";
-  }
+  refreshSyncLines();
 }
 
 async function exportLocalData() {
@@ -547,7 +607,9 @@ async function exportLocalData() {
     _meta: {
       updatedAt: new Date().toISOString(),
       source: "pricingplus-local",
-      version: 1
+      version: 1,
+      appVersion: APP_VERSION,
+      locale: state.locale
     },
     project,
     materials,
@@ -560,25 +622,54 @@ async function importLocalData(snapshot) {
   const materials = Array.isArray(snapshot?.materials) ? snapshot.materials : [];
   const products = Array.isArray(snapshot?.products) ? snapshot.products : [];
 
-  await storage.clearAllData();
-  if (project) {
-    await storage.saveProject(project);
+  state.sync.suspendWrites = true;
+  try {
+    await storage.clearAllData();
+    if (project) {
+      await storage.saveProject(project);
+    }
+    for (const material of materials) {
+      await storage.upsertMaterial(material);
+    }
+    for (const product of products) {
+      await storage.upsertProduct(product);
+    }
+  } finally {
+    state.sync.suspendWrites = false;
   }
-  for (const material of materials) {
-    await storage.upsertMaterial(material);
+}
+
+function readVersionsFromRow(data) {
+  if (!data) return [];
+  if (Array.isArray(data.versions)) return data.versions;
+  if (data.project || data.products || data.materials) {
+    const updatedAt = data?._meta?.updatedAt || new Date().toISOString();
+    return [{ updatedAt, data }];
   }
-  for (const product of products) {
-    await storage.upsertProduct(product);
-  }
+  return [];
 }
 
 async function saveBackupToCloud(snapshot) {
   if (!state.supabase || !state.authUser) throw new Error("AUTH_REQUIRED");
+  const { data: existingRow, error: loadError } = await state.supabase
+    .from("user_backups")
+    .select("data")
+    .eq("user_id", state.authUser.id)
+    .maybeSingle();
+  if (loadError) throw loadError;
+
+  const versions = readVersionsFromRow(existingRow?.data);
+  versions.push({
+    updatedAt: snapshot?._meta?.updatedAt || new Date().toISOString(),
+    data: snapshot
+  });
+  const compactVersions = versions.slice(-5);
+
   const { error } = await state.supabase
     .from("user_backups")
     .upsert({
       user_id: state.authUser.id,
-      data: snapshot,
+      data: { versions: compactVersions },
       updated_at: new Date().toISOString()
     }, { onConflict: "user_id" });
   if (error) throw error;
@@ -602,13 +693,11 @@ async function handleSyncNow() {
     return;
   }
   try {
-    if (refs.authStatusText) refs.authStatusText.textContent = copy.syncing;
-    const snapshot = await exportLocalData();
-    await saveBackupToCloud(snapshot);
-    if (refs.authStatusText) refs.authStatusText.textContent = copy.synced;
+    await runAutoSync(true);
     setFeedback(copy.synced);
   } catch (_) {
-    if (refs.authStatusText) refs.authStatusText.textContent = copy.authError;
+    setSyncStatus("error");
+    refreshSyncLines();
     setFeedback(copy.authError);
   }
 }
@@ -620,28 +709,188 @@ async function handleRestoreFromCloud() {
     return;
   }
   try {
-    if (refs.authStatusText) refs.authStatusText.textContent = copy.loadingBackup;
+    setSyncStatus("syncing");
+    refreshSyncLines();
     const row = await loadBackupFromCloud();
-    if (!row?.data) {
-      if (refs.authStatusText) refs.authStatusText.textContent = copy.noBackup;
+    const versions = readVersionsFromRow(row?.data);
+    const latest = versions.length ? versions[versions.length - 1].data : null;
+    if (!latest) {
       setFeedback(copy.noBackup);
+      setSyncStatus("pending");
+      refreshSyncLines();
       return;
     }
     const confirmed = window.confirm(copy.restoreConfirm);
-    if (!confirmed) return;
-    await importLocalData(row.data);
-    if (refs.authStatusText) refs.authStatusText.textContent = copy.restored;
+    if (!confirmed) {
+      setSyncStatus("pending");
+      refreshSyncLines();
+      return;
+    }
+    await importLocalData(latest);
+    state.sync.lastSyncAt = new Date().toISOString();
+    setSyncStatus("up_to_date");
+    refreshSyncLines();
     setFeedback(copy.restored);
     window.location.replace(getCleanAppUrl());
   } catch (_) {
-    if (refs.authStatusText) refs.authStatusText.textContent = copy.authError;
+    setSyncStatus("error");
+    refreshSyncLines();
     setFeedback(copy.authError);
   }
+}
+
+function scheduleAutoSync() {
+  if (!state.supabase || !state.authUser || state.demoMode || state.sync.suspendWrites) return;
+  state.sync.dirty = true;
+  setSyncStatus("pending");
+  refreshSyncLines();
+  localStorage.setItem(SYNC_PENDING_KEY, "true");
+
+  if (state.sync.debounceId) {
+    clearTimeout(state.sync.debounceId);
+  }
+
+  // Debounce writes to avoid frequent cloud requests while user is actively editing.
+  state.sync.debounceId = setTimeout(() => {
+    state.sync.debounceId = null;
+    runAutoSync(false).catch(() => {});
+  }, AUTO_SYNC_DEBOUNCE_MS);
+}
+
+async function runAutoSync(force = false) {
+  if (!state.supabase || !state.authUser || state.demoMode) return false;
+  if (!force && !state.sync.dirty && localStorage.getItem(SYNC_PENDING_KEY) !== "true") return false;
+
+  const elapsed = Date.now() - state.sync.lastSyncRunAt;
+  if (!force && elapsed < AUTO_SYNC_THROTTLE_MS) {
+    const wait = AUTO_SYNC_THROTTLE_MS - elapsed;
+    if (!state.sync.throttleId) {
+      // Throttle cloud calls so we do not sync more often than once per 30s.
+      state.sync.throttleId = setTimeout(() => {
+        state.sync.throttleId = null;
+        runAutoSync(false).catch(() => {});
+      }, wait);
+    }
+    return false;
+  }
+
+  try {
+    setSyncStatus("syncing");
+    refreshSyncLines();
+    state.sync.lastSyncRunAt = Date.now();
+
+    const snapshot = await exportLocalData();
+    await saveBackupToCloud(snapshot);
+    state.sync.lastSyncAt = snapshot._meta.updatedAt;
+    state.sync.dirty = false;
+    localStorage.removeItem(SYNC_PENDING_KEY);
+    localStorage.setItem("pricingplus_last_sync_at", state.sync.lastSyncAt);
+    setSyncStatus("up_to_date");
+    refreshSyncLines();
+    return true;
+  } catch (error) {
+    state.sync.dirty = true;
+    localStorage.setItem(SYNC_PENDING_KEY, "true");
+    setSyncStatus("error");
+    refreshSyncLines();
+    throw error;
+  }
+}
+
+async function flushAutoSync(options = {}) {
+  if (!state.supabase || !state.authUser || state.demoMode) return;
+  if (!state.sync.dirty && localStorage.getItem(SYNC_PENDING_KEY) !== "true") return;
+
+  if (!options.beforeUnload) {
+    await runAutoSync(true);
+    return;
+  }
+
+  try {
+    const snapshot = await exportLocalData();
+    const body = JSON.stringify({
+      user_id: state.authUser.id,
+      data: { versions: [{ updatedAt: snapshot._meta.updatedAt, data: snapshot }] },
+      updated_at: snapshot._meta.updatedAt
+    });
+    const canUseBeacon = Boolean(navigator.sendBeacon) && body.length < 60000;
+
+    if (canUseBeacon) {
+      // Supabase PostgREST does not support custom headers with sendBeacon, so we pass keys in query for best-effort only.
+      const beaconUrl = `${SUPABASE_URL}/rest/v1/user_backups?on_conflict=user_id&apikey=${encodeURIComponent(SUPABASE_ANON_KEY)}&access_token=${encodeURIComponent(state.authToken || "")}`;
+      const blob = new Blob([body], { type: "application/json" });
+      const sent = navigator.sendBeacon(beaconUrl, blob);
+      if (sent) return;
+    }
+
+    await fetch(`${SUPABASE_URL}/rest/v1/user_backups?on_conflict=user_id`, {
+      method: "POST",
+      keepalive: true,
+      headers: {
+        "content-type": "application/json",
+        apikey: SUPABASE_ANON_KEY,
+        Authorization: `Bearer ${state.authToken || ""}`,
+        Prefer: "resolution=merge-duplicates,return=minimal"
+      },
+      body
+    });
+  } catch (_) {
+    localStorage.setItem(SYNC_PENDING_KEY, "true");
+    setSyncStatus("pending");
+    refreshSyncLines();
+  }
+}
+
+function wrapStorageWritesForSync() {
+  if (state.sync.wrapApplied) return;
+  state.sync.wrapApplied = true;
+
+  // Wrap existing storage write APIs once so auto-sync runs only after successful local writes.
+  const writeMethods = ["saveProject", "upsertMaterial", "upsertProduct", "deleteMaterial", "deleteProduct", "clearAllData"];
+  writeMethods.forEach((name) => {
+    if (typeof storage[name] !== "function") return;
+    const original = storage[name].bind(storage);
+    storage[name] = async (...args) => {
+      const result = await original(...args);
+      if (!state.sync.suspendWrites) {
+        scheduleAutoSync();
+      }
+      return result;
+    };
+  });
+}
+
+function closeAccountDropdown() {
+  if (!refs.accountDropdown || !refs.accountChipBtn) return;
+  refs.accountDropdown.classList.add("hidden");
+  refs.accountChipBtn.setAttribute("aria-expanded", "false");
+}
+
+function bindAccountDropdown() {
+  if (!refs.accountChipBtn || !refs.accountDropdown) return;
+  refs.accountChipBtn.addEventListener("click", (event) => {
+    event.stopPropagation();
+    const willOpen = refs.accountDropdown.classList.contains("hidden");
+    refs.accountDropdown.classList.toggle("hidden", !willOpen);
+    refs.accountChipBtn.setAttribute("aria-expanded", willOpen ? "true" : "false");
+  });
+
+  document.addEventListener("click", (event) => {
+    if (refs.accountChipBtn.contains(event.target) || refs.accountDropdown.contains(event.target)) return;
+    closeAccountDropdown();
+  });
+
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") {
+      closeAccountDropdown();
+    }
+  });
 }
 
 async function initAuth() {
   if (!refs.authSyncPanel) return;
   updateAuthTexts();
+  bindAccountDropdown();
 
   if (!hasSupabaseConfig()) {
     renderAuthPanel();
@@ -657,14 +906,27 @@ async function initAuth() {
 
     const { data } = await state.supabase.auth.getSession();
     state.authUser = data.session?.user || null;
+    state.authToken = data.session?.access_token || "";
+    state.sync.lastSyncAt = localStorage.getItem("pricingplus_last_sync_at") || "";
+    if (localStorage.getItem(SYNC_PENDING_KEY) === "true") {
+      state.sync.dirty = true;
+      setSyncStatus("pending");
+    } else {
+      setSyncStatus(state.sync.lastSyncAt ? "up_to_date" : "pending");
+    }
 
     state.supabase.auth.onAuthStateChange((_event, session) => {
       state.authUser = session?.user || null;
+      state.authToken = session?.access_token || "";
+      if (!state.authUser) {
+        closeAccountDropdown();
+      }
       renderAuthPanel();
     });
   } catch (_) {
     state.supabase = null;
     state.authUser = null;
+    state.authToken = "";
   }
 
   refs.syncNowBtn?.addEventListener("click", handleSyncNow);
@@ -674,12 +936,26 @@ async function initAuth() {
     if (!state.supabase) return;
     await state.supabase.auth.signOut();
     state.authUser = null;
-    if (refs.authStatusText) refs.authStatusText.textContent = copy.signOutDone;
+    state.authToken = "";
+    closeAccountDropdown();
     setFeedback(copy.signOutDone);
     renderAuthPanel();
   });
 
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "hidden") {
+      flushAutoSync({ beforeUnload: true });
+    }
+  });
+
+  window.addEventListener("beforeunload", () => {
+    flushAutoSync({ beforeUnload: true });
+  });
+
   renderAuthPanel();
+  if (state.sync.dirty) {
+    scheduleAutoSync();
+  }
 }
 
 function createInput(value = "", type = "text") {
@@ -2288,6 +2564,7 @@ async function loadState() {
 async function init() {
   state.locale = getCanonicalLocale();
   await loadState();
+  wrapStorageWritesForSync();
   bindEvents();
   await initAuth();
   applyLocale(getCanonicalLocale());

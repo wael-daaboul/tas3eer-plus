@@ -84,17 +84,24 @@
         <button id="exportCsvBtn" type="button"></button>
         <button id="exportXlsxBtn" type="button"></button>
         <button id="exportPdfBtn" type="button"></button>
-        <section id="authSyncPanel" class="surface-muted auth-sync-panel" aria-live="polite">
-          <a id="authSignInBtn" class="btn btn-secondary" href="/login/">Sign in to sync</a>
-          <div id="authSignedIn" class="hidden">
-            <div id="authUserEmail" class="muted"></div>
-            <div class="auth-sync-actions">
-              <button id="syncNowBtn" type="button" class="btn btn-secondary">Sync now</button>
-              <button id="restoreCloudBtn" type="button" class="btn btn-secondary">Restore from cloud</button>
-              <button id="authSignOutBtn" type="button" class="btn btn-secondary">Sign out</button>
+        <section id="authSyncPanel" class="account-chip-wrap hidden" aria-live="polite">
+          <a id="authSignInBtn" class="btn btn-secondary account-signin-btn" href="/login/">Sign in (optional)</a>
+          <button id="accountChipBtn" type="button" class="account-chip hidden" aria-expanded="false" aria-controls="accountDropdown">
+            <span class="account-chip-icon">👤</span>
+            <span id="authUserEmailShort" class="account-chip-email"></span>
+            <span aria-hidden="true">▾</span>
+          </button>
+          <div id="accountDropdown" class="account-dropdown hidden" role="menu">
+            <div class="account-meta">
+              <div id="syncStatusLine" class="muted">Sync status: Pending</div>
+              <div id="syncLastLine" class="muted">Last sync: --</div>
+            </div>
+            <div class="account-actions">
+              <button id="syncNowBtn" type="button" class="btn btn-secondary" role="menuitem">Sync now</button>
+              <button id="restoreCloudBtn" type="button" class="btn btn-secondary" role="menuitem">Restore from cloud</button>
+              <button id="authSignOutBtn" type="button" class="btn btn-secondary" role="menuitem">Sign out</button>
             </div>
           </div>
-          <small id="authStatusText" class="muted"></small>
         </section>
       </div>
     </header>

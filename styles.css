@@ -167,26 +167,81 @@ a:hover {
   flex-wrap: wrap;
 }
 
-.auth-sync-panel {
-  min-width: 280px;
-  padding: var(--space-2) var(--space-3);
+.account-chip-wrap {
+  position: relative;
+}
+
+.account-signin-btn {
+  padding: 0.45rem 0.7rem;
+  font-size: var(--font-sm);
+}
+
+.account-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  border: var(--border-1);
+  border-color: var(--line);
+  border-radius: 999px;
+  min-height: 38px;
+  padding: 0 var(--space-3);
+  background: #fff;
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.account-chip-email {
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--font-sm);
+}
+
+.account-dropdown {
+  position: absolute;
+  top: calc(100% + var(--space-2));
+  inset-inline-end: 0;
+  width: min(320px, calc(100vw - 24px));
+  background: #fff;
+  border: var(--border-1);
+  border-color: var(--line);
+  border-radius: var(--radius-1);
+  box-shadow: var(--shadow-2);
+  z-index: 80;
+  padding: var(--space-3);
+}
+
+.account-meta {
+  display: grid;
+  gap: var(--space-1);
+  margin-bottom: var(--space-3);
+}
+
+.account-actions {
   display: grid;
   gap: var(--space-2);
 }
 
-.auth-sync-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-2);
+.account-actions .btn {
+  width: 100%;
+  text-align: start;
 }
 
-.auth-sync-panel .btn {
-  padding: 0.45rem 0.75rem;
+[dir="rtl"] .account-actions .btn {
+  text-align: end;
 }
 
-.auth-sync-panel .is-disabled {
-  pointer-events: none;
-  opacity: 0.6;
+@media (max-width: 640px) {
+  .account-chip-email {
+    display: none;
+  }
+
+  .account-chip {
+    padding: 0 var(--space-2);
+    min-width: 40px;
+    justify-content: center;
+  }
 }
 
 .auth-card {
