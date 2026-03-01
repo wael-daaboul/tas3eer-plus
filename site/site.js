@@ -310,8 +310,9 @@
   function syncBrandLogo() {
     const logo = document.getElementById("brandLogo");
     if (!logo) return;
-    const locale = localStorage.getItem(LOCALE_KEY);
-    if (locale === "ar") {
+    const locale = (localStorage.getItem(LOCALE_KEY) || "en").toLowerCase();
+    const isArabic = locale === "ar";
+    if (isArabic) {
       logo.src = "/assets/brand/logo-ar.svg";
       logo.alt = "تسعير+";
     } else {
@@ -451,13 +452,14 @@
 
     window.addEventListener("storage", (event) => {
       if (event.key !== LOCALE_KEY) return;
-      const next = event.newValue === "en" ? "en" : "ar";
+      syncBrandLogo();
+      const next = event.newValue === "ar" ? "ar" : "en";
       if (next === activeLocale) return;
       applyLocale(next, { skipPersist: true });
     });
 
     window.addEventListener("pricingplus:locale-changed", (event) => {
-      const next = event?.detail?.locale === "en" ? "en" : "ar";
+      const next = event?.detail?.locale === "ar" ? "ar" : "en";
       if (next === activeLocale) return;
       applyLocale(next, { skipPersist: true });
     });
