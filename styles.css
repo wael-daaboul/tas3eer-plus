@@ -97,6 +97,15 @@ body {
   }
 }
 
+/* Safari-specific sizing consistency */
+@supports (-webkit-touch-callout: none) {
+  .brand-logo {
+    width: 180px !important;
+    height: 28px !important;
+    object-fit: contain !important;
+  }
+}
+
 /* If there is any global img/svg sizing rule that can affect the brand, neutralize it safely */
 .brand img,
 .brand svg {
@@ -114,6 +123,15 @@ body {
   .brand img.brand-logo {
     height: 24px !important;
     max-height: 24px !important;
+  }
+}
+
+@supports (-webkit-touch-callout: none) {
+  @media (max-width: 640px) {
+    .brand-logo {
+      width: 160px !important;
+      height: 24px !important;
+    }
   }
 }
 
