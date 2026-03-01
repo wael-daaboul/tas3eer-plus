@@ -84,6 +84,18 @@
         <button id="exportCsvBtn" type="button"></button>
         <button id="exportXlsxBtn" type="button"></button>
         <button id="exportPdfBtn" type="button"></button>
+        <section id="authSyncPanel" class="surface-muted auth-sync-panel" aria-live="polite">
+          <a id="authSignInBtn" class="btn btn-secondary" href="/login/">Sign in to sync</a>
+          <div id="authSignedIn" class="hidden">
+            <div id="authUserEmail" class="muted"></div>
+            <div class="auth-sync-actions">
+              <button id="syncNowBtn" type="button" class="btn btn-secondary">Sync now</button>
+              <button id="restoreCloudBtn" type="button" class="btn btn-secondary">Restore from cloud</button>
+              <button id="authSignOutBtn" type="button" class="btn btn-secondary">Sign out</button>
+            </div>
+          </div>
+          <small id="authStatusText" class="muted"></small>
+        </section>
       </div>
     </header>
 

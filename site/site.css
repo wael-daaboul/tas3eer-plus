@@ -240,6 +240,38 @@ body {
   margin-top: 0.8rem;
 }
 
+.auth-card {
+  max-width: 680px;
+}
+
+.auth-form {
+  display: grid;
+  gap: 0.75rem;
+  margin-top: 0.75rem;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.field input {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  min-height: 44px;
+  padding: 0.5rem 0.75rem;
+  font: inherit;
+}
+
+.ok-note {
+  color: #1f7a4f;
+}
+
+.warn-note {
+  color: #8e6200;
+}
+
 .level-pill {
   display: inline-block;
   border: 1px solid var(--line);

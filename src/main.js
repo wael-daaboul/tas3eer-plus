@@ -11,6 +11,7 @@ import { IndexedDbProvider } from "./storage/indexedDbProvider.js";
 import { exportCsv, exportXlsx, exportPdf } from "./services/exportService.js";
 import { formatMoney, formatNumber, toNumber } from "./utils/format.js";
 import { uid } from "./utils/id.js";
+import { getSupabaseClient, hasSupabaseConfig } from "../site/supabaseClient.js";
 
 const storage = new IndexedDbProvider();
 const LOCALE_KEY = "pricingplus_locale";
@@ -37,12 +38,56 @@ const state = {
   editingProductId: null,
   editingMaterialId: null,
   uiMode: "simple",
-  demoMode: false
+  demoMode: false,
+  supabase: null,
+  authUser: null
 };
 
 function getCanonicalLocale() {
   const locale = localStorage.getItem(LOCALE_KEY);
   return locale === "ar" ? "ar" : "en";
+}
+
+function getAuthCopy(locale) {
+  if (locale === "ar") {
+    return {
+      signIn: "تسجيل الدخول للمزامنة",
+      signedInAs: "الحساب",
+      syncNow: "مزامنة الآن",
+      restore: "استعادة من السحابة",
+      signOut: "تسجيل الخروج",
+      unavailable: "النسخ السحابي غير مفعّل حالياً.",
+      notSignedIn: "يمكنك متابعة الاستخدام محلياً بدون تسجيل.",
+      syncing: "جارٍ رفع النسخة الاحتياطية...",
+      synced: "تم رفع النسخة الاحتياطية بنجاح.",
+      loadingBackup: "جارٍ تحميل النسخة السحابية...",
+      noBackup: "لا توجد نسخة سحابية محفوظة لهذا الحساب.",
+      restoreConfirm: "سيتم استبدال البيانات المحلية الحالية بنسخة سحابية. هل تريد المتابعة؟",
+      restored: "تمت الاستعادة بنجاح. سيتم تحديث الصفحة.",
+      signOutDone: "تم تسجيل الخروج. بياناتك المحلية كما هي.",
+      authError: "تعذر تنفيذ العملية السحابية حالياً.",
+      demoBlocked: "أوقف وضع التجربة أولاً قبل النسخ السحابي."
+    };
+  }
+
+  return {
+    signIn: "Sign in to sync",
+    signedInAs: "Signed in",
+    syncNow: "Sync now",
+    restore: "Restore from cloud",
+    signOut: "Sign out",
+    unavailable: "Cloud backup is not enabled yet.",
+    notSignedIn: "You can keep using the app locally without login.",
+    syncing: "Uploading backup...",
+    synced: "Backup uploaded successfully.",
+    loadingBackup: "Loading cloud backup...",
+    noBackup: "No cloud backup found for this account.",
+    restoreConfirm: "This will overwrite current local data with cloud backup. Continue?",
+    restored: "Restore complete. Reloading page.",
+    signOutDone: "Signed out. Your local data is unchanged.",
+    authError: "Could not complete cloud operation right now.",
+    demoBlocked: "Exit demo mode before cloud backup."
+  };
 }
 
 function createDefaultProject() {
@@ -324,6 +369,14 @@ const refs = {
   exportCsvBtn: document.getElementById("exportCsvBtn"),
   exportXlsxBtn: document.getElementById("exportXlsxBtn"),
   exportPdfBtn: document.getElementById("exportPdfBtn"),
+  authSyncPanel: document.getElementById("authSyncPanel"),
+  authSignInBtn: document.getElementById("authSignInBtn"),
+  authSignedIn: document.getElementById("authSignedIn"),
+  authUserEmail: document.getElementById("authUserEmail"),
+  syncNowBtn: document.getElementById("syncNowBtn"),
+  restoreCloudBtn: document.getElementById("restoreCloudBtn"),
+  authSignOutBtn: document.getElementById("authSignOutBtn"),
+  authStatusText: document.getElementById("authStatusText"),
   backToSiteLink: document.getElementById("backToSiteLink"),
   startNewProjectBtn: document.getElementById("startNewProjectBtn"),
   demoModeBanner: document.getElementById("demoModeBanner"),
@@ -439,6 +492,194 @@ function getCleanAppUrl() {
 function exitDemoModeReload() {
   state.demoMode = false;
   window.location.replace(getCleanAppUrl());
+}
+
+function updateAuthTexts() {
+  if (!refs.authSyncPanel) return;
+  const copy = getAuthCopy(state.locale);
+  if (refs.authSignInBtn) refs.authSignInBtn.textContent = copy.signIn;
+  if (refs.syncNowBtn) refs.syncNowBtn.textContent = copy.syncNow;
+  if (refs.restoreCloudBtn) refs.restoreCloudBtn.textContent = copy.restore;
+  if (refs.authSignOutBtn) refs.authSignOutBtn.textContent = copy.signOut;
+}
+
+function renderAuthPanel() {
+  if (!refs.authSyncPanel) return;
+  const copy = getAuthCopy(state.locale);
+  const enabled = hasSupabaseConfig();
+  const signedIn = Boolean(state.authUser);
+
+  refs.authSyncPanel.classList.toggle("hidden", false);
+  if (refs.authSignInBtn) refs.authSignInBtn.classList.toggle("hidden", signedIn);
+  if (refs.authSignedIn) refs.authSignedIn.classList.toggle("hidden", !signedIn);
+
+  if (refs.authSignInBtn) {
+    refs.authSignInBtn.href = "/login/";
+    refs.authSignInBtn.setAttribute("aria-disabled", enabled ? "false" : "true");
+    refs.authSignInBtn.classList.toggle("is-disabled", !enabled);
+  }
+
+  if (!enabled) {
+    if (refs.authStatusText) refs.authStatusText.textContent = copy.unavailable;
+    return;
+  }
+
+  if (!signedIn) {
+    if (refs.authStatusText) refs.authStatusText.textContent = copy.notSignedIn;
+    return;
+  }
+
+  if (refs.authUserEmail) {
+    refs.authUserEmail.textContent = `${copy.signedInAs}: ${state.authUser.email || ""}`;
+  }
+  if (refs.authStatusText && !refs.authStatusText.textContent) {
+    refs.authStatusText.textContent = "";
+  }
+}
+
+async function exportLocalData() {
+  const [project, materials, products] = await Promise.all([
+    storage.getProject(),
+    storage.listMaterials(),
+    storage.listProducts()
+  ]);
+  return {
+    _meta: {
+      updatedAt: new Date().toISOString(),
+      source: "pricingplus-local",
+      version: 1
+    },
+    project,
+    materials,
+    products
+  };
+}
+
+async function importLocalData(snapshot) {
+  const project = snapshot?.project ?? null;
+  const materials = Array.isArray(snapshot?.materials) ? snapshot.materials : [];
+  const products = Array.isArray(snapshot?.products) ? snapshot.products : [];
+
+  await storage.clearAllData();
+  if (project) {
+    await storage.saveProject(project);
+  }
+  for (const material of materials) {
+    await storage.upsertMaterial(material);
+  }
+  for (const product of products) {
+    await storage.upsertProduct(product);
+  }
+}
+
+async function saveBackupToCloud(snapshot) {
+  if (!state.supabase || !state.authUser) throw new Error("AUTH_REQUIRED");
+  const { error } = await state.supabase
+    .from("user_backups")
+    .upsert({
+      user_id: state.authUser.id,
+      data: snapshot,
+      updated_at: new Date().toISOString()
+    }, { onConflict: "user_id" });
+  if (error) throw error;
+}
+
+async function loadBackupFromCloud() {
+  if (!state.supabase || !state.authUser) throw new Error("AUTH_REQUIRED");
+  const { data, error } = await state.supabase
+    .from("user_backups")
+    .select("data,updated_at")
+    .eq("user_id", state.authUser.id)
+    .maybeSingle();
+  if (error) throw error;
+  return data;
+}
+
+async function handleSyncNow() {
+  const copy = getAuthCopy(state.locale);
+  if (state.demoMode) {
+    setFeedback(copy.demoBlocked);
+    return;
+  }
+  try {
+    if (refs.authStatusText) refs.authStatusText.textContent = copy.syncing;
+    const snapshot = await exportLocalData();
+    await saveBackupToCloud(snapshot);
+    if (refs.authStatusText) refs.authStatusText.textContent = copy.synced;
+    setFeedback(copy.synced);
+  } catch (_) {
+    if (refs.authStatusText) refs.authStatusText.textContent = copy.authError;
+    setFeedback(copy.authError);
+  }
+}
+
+async function handleRestoreFromCloud() {
+  const copy = getAuthCopy(state.locale);
+  if (state.demoMode) {
+    setFeedback(copy.demoBlocked);
+    return;
+  }
+  try {
+    if (refs.authStatusText) refs.authStatusText.textContent = copy.loadingBackup;
+    const row = await loadBackupFromCloud();
+    if (!row?.data) {
+      if (refs.authStatusText) refs.authStatusText.textContent = copy.noBackup;
+      setFeedback(copy.noBackup);
+      return;
+    }
+    const confirmed = window.confirm(copy.restoreConfirm);
+    if (!confirmed) return;
+    await importLocalData(row.data);
+    if (refs.authStatusText) refs.authStatusText.textContent = copy.restored;
+    setFeedback(copy.restored);
+    window.location.replace(getCleanAppUrl());
+  } catch (_) {
+    if (refs.authStatusText) refs.authStatusText.textContent = copy.authError;
+    setFeedback(copy.authError);
+  }
+}
+
+async function initAuth() {
+  if (!refs.authSyncPanel) return;
+  updateAuthTexts();
+
+  if (!hasSupabaseConfig()) {
+    renderAuthPanel();
+    return;
+  }
+
+  try {
+    state.supabase = await getSupabaseClient();
+    if (!state.supabase) {
+      renderAuthPanel();
+      return;
+    }
+
+    const { data } = await state.supabase.auth.getSession();
+    state.authUser = data.session?.user || null;
+
+    state.supabase.auth.onAuthStateChange((_event, session) => {
+      state.authUser = session?.user || null;
+      renderAuthPanel();
+    });
+  } catch (_) {
+    state.supabase = null;
+    state.authUser = null;
+  }
+
+  refs.syncNowBtn?.addEventListener("click", handleSyncNow);
+  refs.restoreCloudBtn?.addEventListener("click", handleRestoreFromCloud);
+  refs.authSignOutBtn?.addEventListener("click", async () => {
+    const copy = getAuthCopy(state.locale);
+    if (!state.supabase) return;
+    await state.supabase.auth.signOut();
+    state.authUser = null;
+    if (refs.authStatusText) refs.authStatusText.textContent = copy.signOutDone;
+    setFeedback(copy.signOutDone);
+    renderAuthPanel();
+  });
+
+  renderAuthPanel();
 }
 
 function createInput(value = "", type = "text") {
@@ -1848,6 +2089,8 @@ function applyLocale(locale) {
 
   refs.languageSelect.value = locale;
   setSiteLanguageButtons(locale);
+  updateAuthTexts();
+  renderAuthPanel();
   renderDemoModeBanner();
   renderHourlyRateWarning();
   renderDemoDeleteButton();
@@ -2046,6 +2289,7 @@ async function init() {
   state.locale = getCanonicalLocale();
   await loadState();
   bindEvents();
+  await initAuth();
   applyLocale(getCanonicalLocale());
   fillSettingsFromState();
   resetMaterialForm();

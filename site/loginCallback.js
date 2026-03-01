@@ -1,0 +1,93 @@
+import { getSupabaseClient, hasSupabaseConfig } from "/site/supabaseClient.js";
+
+const copy = {
+  ar: {
+    loading: "جارٍ إكمال تسجيل الدخول...",
+    success: "تم تسجيل الدخول. سيتم تحويلك إلى الأداة.",
+    failed: "تعذر إكمال تسجيل الدخول من الرابط الحالي.",
+    missingConfig: "تسجيل الدخول غير مفعّل حالياً.",
+    back: "العودة إلى صفحة تسجيل الدخول"
+  },
+  en: {
+    loading: "Completing sign-in...",
+    success: "Signed in successfully. Redirecting to the app.",
+    failed: "Could not complete sign-in from this link.",
+    missingConfig: "Login is not enabled yet.",
+    back: "Back to login"
+  }
+};
+
+function getLocale() {
+  return localStorage.getItem("pricingplus_locale") === "ar" ? "ar" : "en";
+}
+
+function t(locale, key) {
+  return copy[locale][key] || copy.en[key] || "";
+}
+
+async function waitForSession(supabase) {
+  const { data } = await supabase.auth.getSession();
+  if (data.session) return data.session;
+
+  return new Promise((resolve) => {
+    let done = false;
+    const timeout = setTimeout(() => {
+      if (!done) {
+        done = true;
+        resolve(null);
+      }
+    }, 4000);
+
+    const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (done) return;
+      if (!session) return;
+      done = true;
+      clearTimeout(timeout);
+      sub.subscription.unsubscribe();
+      resolve(session);
+    });
+  });
+}
+
+document.addEventListener("DOMContentLoaded", async () => {
+  const locale = getLocale();
+  const status = document.getElementById("loginCallbackStatus");
+  const backBtn = document.getElementById("loginCallbackBack");
+
+  if (!status) return;
+  status.textContent = t(locale, "loading");
+  if (backBtn) backBtn.textContent = t(locale, "back");
+
+  if (!hasSupabaseConfig()) {
+    status.textContent = t(locale, "missingConfig");
+    status.className = "warn-note";
+    return;
+  }
+
+  const supabase = await getSupabaseClient();
+  if (!supabase) {
+    status.textContent = t(locale, "missingConfig");
+    status.className = "warn-note";
+    return;
+  }
+
+  const url = new URL(window.location.href);
+  const code = url.searchParams.get("code");
+  if (code) {
+    await supabase.auth.exchangeCodeForSession(code);
+  }
+
+  const session = await waitForSession(supabase);
+
+  if (!session) {
+    status.textContent = t(locale, "failed");
+    status.className = "warn-note";
+    return;
+  }
+
+  status.textContent = t(locale, "success");
+  status.className = "ok-note";
+  setTimeout(() => {
+    window.location.replace("/app/");
+  }, 400);
+});
