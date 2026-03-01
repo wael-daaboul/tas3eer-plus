@@ -1,4 +1,7 @@
 .vscode/sftp.json
+# تجاهل ملفات لا تخص الإنتاج
 .DS_Store
+tests/
+*.zip
 node_modules/
 *.log
