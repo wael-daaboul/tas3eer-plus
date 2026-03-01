@@ -332,10 +332,10 @@
     if (!logo) return;
     const isArabic = normalizeLocale(locale || activeLocale) === "ar";
     if (isArabic) {
-      logo.src = "/assets/brand/logo-ar-header.svg";
+      logo.src = "/assets/brand/logo-ar.svg";
       logo.alt = "Pricing+";
     } else {
-      logo.src = "/assets/brand/logo-en-header.svg";
+      logo.src = "/assets/brand/logo-en.svg";
       logo.alt = "Pricing+";
     }
   }

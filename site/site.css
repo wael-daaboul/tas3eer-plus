@@ -1,3 +1,33 @@
+:root {
+  --pp-blue: #2563EB;
+  --pp-text: #1F2937;
+  --pp-muted: #6B7280;
+  --pp-bg: #FFFFFF;
+  --pp-bg-soft: #F9FAFB;
+  --pp-border: #E5E7EB;
+  --line: var(--pp-border);
+  --ink: var(--pp-text);
+  --muted: var(--pp-muted);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji";
+  background: var(--pp-bg);
+  color: var(--ink);
+  line-height: 1.5;
+}
+
+.card {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+}
+
 .container {
   width: min(1120px, calc(100% - 2rem));
   margin-inline: auto;
@@ -28,6 +58,43 @@
   font-weight: 800;
   color: var(--pp-text);
   text-decoration: none;
+}
+
+.brand-logo {
+  height: 28px !important;
+  width: auto !important;
+  max-width: 180px !important;
+  max-height: 28px !important;
+  display: block !important;
+  object-fit: contain;
+}
+
+@media (max-width: 640px) {
+  .brand-logo {
+    height: 24px !important;
+    max-height: 24px !important;
+    max-width: 160px !important;
+  }
+}
+
+.brand img,
+.brand svg {
+  width: auto !important;
+  height: 100% !important;
+  max-width: 100% !important;
+}
+
+@supports (-webkit-touch-callout: none) {
+  .brand-logo {
+    width: 180px !important;
+    object-fit: contain;
+  }
+
+  @media (max-width: 640px) {
+    .brand-logo {
+      width: 160px !important;
+    }
+  }
 }
 
 .nav {
