@@ -307,6 +307,19 @@
     return (TRANSLATIONS[locale] && TRANSLATIONS[locale][key]) || null;
   }
 
+  function syncBrandLogo() {
+    const logo = document.getElementById("brandLogo");
+    if (!logo) return;
+    const locale = localStorage.getItem(LOCALE_KEY);
+    if (locale === "ar") {
+      logo.src = "/assets/brand/logo-ar.svg";
+      logo.alt = "تسعير+";
+    } else {
+      logo.src = "/assets/brand/logo-en.svg";
+      logo.alt = "Pricing+";
+    }
+  }
+
   function applyLocale(locale, options = {}) {
     activeLocale = locale === "en" ? "en" : "ar";
     document.documentElement.lang = activeLocale;
@@ -330,6 +343,7 @@
       btn.classList.toggle("active", isActive);
       btn.setAttribute("aria-pressed", isActive ? "true" : "false");
     });
+    syncBrandLogo();
 
     window.dispatchEvent(new CustomEvent("pricingplus:locale-changed", {
       detail: { locale: activeLocale }
@@ -423,6 +437,7 @@
   }
 
   document.addEventListener("DOMContentLoaded", () => {
+    syncBrandLogo();
     applyLocale(getInitialLocale());
     bindCopySupportLink();
     syncActiveNavLink();
