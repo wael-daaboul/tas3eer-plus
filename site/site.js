@@ -313,10 +313,10 @@
     const locale = (localStorage.getItem(LOCALE_KEY) || "en").toLowerCase();
     const isArabic = locale === "ar";
     if (isArabic) {
-      logo.src = "/assets/brand/logo-ar.svg";
+      logo.src = "/assets/brand/logo-ar-header.svg";
       logo.alt = "تسعير+";
     } else {
-      logo.src = "/assets/brand/logo-en.svg";
+      logo.src = "/assets/brand/logo-en-header.svg";
       logo.alt = "Pricing+";
     }
   }
