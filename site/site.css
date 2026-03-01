@@ -130,6 +130,29 @@
   padding: 1.1rem 0 2rem;
 }
 
+.landing-page {
+  padding-top: 1.3rem;
+}
+
+.landing-section + .landing-section {
+  margin-top: 1.1rem;
+  position: relative;
+}
+
+.landing-section + .landing-section::before {
+  content: "";
+  display: block;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--line), transparent);
+  margin-bottom: 1rem;
+}
+
+.section-kicker {
+  margin: 0 0 0.65rem;
+  font-size: 1rem;
+  color: var(--muted);
+}
+
 .actions-row {
   display: flex;
   flex-wrap: wrap;
@@ -174,6 +197,52 @@
   color: var(--muted);
   text-decoration: none;
   border-bottom: 1px dashed var(--line);
+}
+
+.hero {
+  background: linear-gradient(180deg, #ffffff 0%, #fcfdfb 100%);
+}
+
+.hero-example {
+  margin: 0.65rem 0 0.9rem;
+  padding: 0.65rem 0.8rem;
+  border: 1px solid #dfe4d9;
+  border-radius: 10px;
+  background: #f8fbf7;
+  color: var(--ink);
+  font-size: 0.98rem;
+}
+
+.hero-trust {
+  margin: 0.45rem 0 0;
+  color: var(--muted);
+  font-size: 0.88rem;
+}
+
+.flow-grid {
+  margin: 0;
+}
+
+.flow-card {
+  position: relative;
+  padding-top: 1.2rem;
+}
+
+.flow-step {
+  position: absolute;
+  top: 0.55rem;
+  inset-inline-end: 0.65rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.6rem;
+  height: 1.6rem;
+  border-radius: 999px;
+  background: var(--primary-soft);
+  border: 1px solid #b9dfcb;
+  color: var(--primary);
+  font-weight: 700;
+  font-size: 0.88rem;
 }
 
 .list {
