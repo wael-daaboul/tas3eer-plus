@@ -1,5 +1,6 @@
 (function () {
   const LOCALE_KEY = "pricingplus_locale";
+  const LEGACY_LOCALE_KEYS = ["pricingplus_lang", "pricingplus-language", "locale", "language"];
 
   const TRANSLATIONS = {
     ar: {
@@ -292,29 +293,47 @@
     }
   };
 
-  let activeLocale = "ar";
+  let activeLocale = "en";
 
-  function getInitialLocale() {
+  function normalizeLocale(value) {
+    return String(value || "").toLowerCase() === "ar" ? "ar" : "en";
+  }
+
+  function getLocale() {
     const saved = localStorage.getItem(LOCALE_KEY);
     if (saved === "ar" || saved === "en") return saved;
+
+    for (const key of LEGACY_LOCALE_KEYS) {
+      const legacyValue = localStorage.getItem(key);
+      if (!legacyValue) continue;
+      const migrated = normalizeLocale(legacyValue);
+      localStorage.setItem(LOCALE_KEY, migrated);
+      return migrated;
+    }
+
     const browserLanguage = (navigator.language || "en").toLowerCase();
     const locale = browserLanguage.startsWith("ar") ? "ar" : "en";
     localStorage.setItem(LOCALE_KEY, locale);
     return locale;
   }
 
+  function setLocale(locale) {
+    const next = normalizeLocale(locale);
+    localStorage.setItem(LOCALE_KEY, next);
+    applyLocale(next);
+  }
+
   function t(locale, key) {
     return (TRANSLATIONS[locale] && TRANSLATIONS[locale][key]) || null;
   }
 
-  function syncBrandLogo() {
+  function syncBrandLogo(locale) {
     const logo = document.getElementById("brandLogo");
     if (!logo) return;
-    const locale = (localStorage.getItem(LOCALE_KEY) || "en").toLowerCase();
-    const isArabic = locale === "ar";
+    const isArabic = normalizeLocale(locale || activeLocale) === "ar";
     if (isArabic) {
       logo.src = "/assets/brand/logo-ar-header.svg";
-      logo.alt = "تسعير+";
+      logo.alt = "Pricing+";
     } else {
       logo.src = "/assets/brand/logo-en-header.svg";
       logo.alt = "Pricing+";
@@ -322,7 +341,7 @@
   }
 
   function applyLocale(locale, options = {}) {
-    activeLocale = locale === "en" ? "en" : "ar";
+    activeLocale = normalizeLocale(locale);
     document.documentElement.lang = activeLocale;
     document.documentElement.dir = activeLocale === "ar" ? "rtl" : "ltr";
 
@@ -344,7 +363,7 @@
       btn.classList.toggle("active", isActive);
       btn.setAttribute("aria-pressed", isActive ? "true" : "false");
     });
-    syncBrandLogo();
+    syncBrandLogo(activeLocale);
 
     window.dispatchEvent(new CustomEvent("pricingplus:locale-changed", {
       detail: { locale: activeLocale }
@@ -438,28 +457,27 @@
   }
 
   document.addEventListener("DOMContentLoaded", () => {
-    syncBrandLogo();
-    applyLocale(getInitialLocale());
+    applyLocale(getLocale(), { skipPersist: true });
     bindCopySupportLink();
     syncActiveNavLink();
     bindMobileNav();
 
     document.querySelectorAll(".lang-btn").forEach((btn) => {
-      btn.addEventListener("click", () => {
-        applyLocale(btn.dataset.lang === "en" ? "en" : "ar");
+      btn.addEventListener("click", (event) => {
+        event.preventDefault();
+        setLocale(btn.dataset.lang);
       });
     });
 
     window.addEventListener("storage", (event) => {
       if (event.key !== LOCALE_KEY) return;
-      syncBrandLogo();
-      const next = event.newValue === "ar" ? "ar" : "en";
+      const next = normalizeLocale(event.newValue);
       if (next === activeLocale) return;
       applyLocale(next, { skipPersist: true });
     });
 
     window.addEventListener("pricingplus:locale-changed", (event) => {
-      const next = event?.detail?.locale === "ar" ? "ar" : "en";
+      const next = normalizeLocale(event?.detail?.locale);
       if (next === activeLocale) return;
       applyLocale(next, { skipPersist: true });
     });
