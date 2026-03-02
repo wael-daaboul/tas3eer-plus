@@ -411,6 +411,9 @@ const refs = {
   demoModeBanner: document.getElementById("demoModeBanner"),
   demoModeTitle: document.getElementById("demoModeTitle"),
   exitDemoModeBtn: document.getElementById("exitDemoModeBtn"),
+  appGuideBox: document.getElementById("appGuideBox"),
+  appGuideText: document.getElementById("appGuideText"),
+  appGuideDismiss: document.getElementById("appGuideDismiss"),
   quickStartDemoBtn: document.getElementById("quickStartDemoBtn"),
   deleteDemoBtn: document.getElementById("deleteDemoBtn"),
   hourlyRateZeroWarning: document.getElementById("hourlyRateZeroWarning"),
@@ -2232,6 +2235,7 @@ function applyLocale(locale) {
   const textKeys = {
     appTitle: "appTitle",
     appSubtitle: "appSubtitle",
+    appGuideText: "appGuideText",
     languageLabel: "languageLabel",
     backToSiteLink: "backToSiteLink",
     exportCsvBtn: "exportCsv",
@@ -2338,6 +2342,7 @@ function applyLocale(locale) {
     if (el) el.textContent = t(key);
   });
   if (refs.startNewProjectBtn) refs.startNewProjectBtn.textContent = getResetProjectLabel(locale);
+  if (refs.appGuideDismiss) refs.appGuideDismiss.setAttribute("aria-label", t("appGuideDismiss"));
   updateDemoModeTexts();
 
   refs.hourlyRate.placeholder = t("hourlyRatePlaceholder");
@@ -2414,6 +2419,9 @@ function bindEvents() {
   });
 
   refs.languageSelect.disabled = true;
+  refs.appGuideDismiss?.addEventListener("click", () => {
+    refs.appGuideBox?.classList.add("hidden");
+  });
 
   refs.simpleModeBtn.addEventListener("click", () => applyUiMode("simple"));
   refs.advancedModeBtn.addEventListener("click", () => applyUiMode("advanced"));

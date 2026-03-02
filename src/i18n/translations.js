@@ -4,6 +4,8 @@ export const TRANSLATIONS = {
   ar: {
     appTitle: "تسعير+",
     appSubtitle: "أداة مبسطة لحساب تكلفة وتسعير المنتجات الصغيرة.",
+    appGuideText: "أدخل تكلفة المواد، وقتك، والمصاريف الثابتة — وسنحسب لك السعر الأدنى والربح المقترح.",
+    appGuideDismiss: "إغلاق",
     languageLabel: "اللغة",
     langArabic: "العربية",
     langEnglish: "الإنجليزية",
@@ -266,6 +268,8 @@ export const TRANSLATIONS = {
   en: {
     appTitle: "PricingPlus",
     appSubtitle: "Simple pricing for small product-based businesses.",
+    appGuideText: "Enter materials cost, your time, and fixed expenses — we calculate minimum price and suggested profit.",
+    appGuideDismiss: "Dismiss",
     languageLabel: "Language",
     langArabic: "Arabic",
     langEnglish: "English",

@@ -185,6 +185,32 @@ body {
   color: #fff;
 }
 
+.hero-cta {
+  font-weight: 700;
+}
+
+.hero-benefits {
+  margin: 0.85rem 0 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 0.35rem;
+  color: var(--ink);
+}
+
+.hero-benefits li {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.98rem;
+}
+
+.hero-benefits li::before {
+  content: "•";
+  color: var(--pp-blue);
+  font-weight: 700;
+}
+
 .card-grid {
   display: grid;
   gap: 0.75rem;
@@ -231,6 +257,17 @@ body {
   margin: 0 0 0.65rem;
   font-size: 1rem;
   color: var(--muted);
+}
+
+.quick-example-block h2 {
+  margin-top: 0;
+}
+
+.quick-example-text {
+  margin: 0;
+  color: var(--ink);
+  white-space: pre-line;
+  line-height: 1.6;
 }
 
 .actions-row {
