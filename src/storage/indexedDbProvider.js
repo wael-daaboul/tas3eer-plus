@@ -58,39 +58,61 @@ export class IndexedDbProvider extends StorageProvider {
     this.db = null;
   }
 
-  async init() {
-    if (this.db) return;
+  #getAnalytics() {
+    return window.PricingPlusAnalytics;
+  }
 
-    this.db = await new Promise((resolve, reject) => {
-      const request = indexedDB.open(DB_NAME, DB_VERSION);
-
-      request.onupgradeneeded = () => {
-        const db = request.result;
-
-        if (!db.objectStoreNames.contains(STORE_PROJECT)) {
-          db.createObjectStore(STORE_PROJECT, { keyPath: "id" });
-        }
-
-        if (!db.objectStoreNames.contains(STORE_PRODUCTS)) {
-          db.createObjectStore(STORE_PRODUCTS, { keyPath: "id" });
-        }
-
-        if (!db.objectStoreNames.contains(STORE_MATERIALS)) {
-          const store = db.createObjectStore(STORE_MATERIALS, { keyPath: "id" });
-          store.createIndex("byNameEn", "name_en", { unique: false });
-        } else {
-          const store = request.transaction.objectStore(STORE_MATERIALS);
-          if (!store.indexNames.contains("byNameEn")) {
-            store.createIndex("byNameEn", "name_en", { unique: false });
-          }
-        }
-      };
-
-      request.onsuccess = () => resolve(request.result);
-      request.onerror = () => reject(request.error);
+  #trackStorageError(operation) {
+    this.#getAnalytics()?.trackEvent("storage_error", {
+      operation,
+      page: window.location.pathname || "/app/"
     });
+  }
 
-    await this.#migrateLegacyData();
+  async #withTrackedOperation(operation, task) {
+    try {
+      return await task();
+    } catch (error) {
+      this.#trackStorageError(operation);
+      throw error;
+    }
+  }
+
+  async init() {
+    return this.#withTrackedOperation("init", async () => {
+      if (this.db) return;
+
+      this.db = await new Promise((resolve, reject) => {
+        const request = indexedDB.open(DB_NAME, DB_VERSION);
+
+        request.onupgradeneeded = () => {
+          const db = request.result;
+
+          if (!db.objectStoreNames.contains(STORE_PROJECT)) {
+            db.createObjectStore(STORE_PROJECT, { keyPath: "id" });
+          }
+
+          if (!db.objectStoreNames.contains(STORE_PRODUCTS)) {
+            db.createObjectStore(STORE_PRODUCTS, { keyPath: "id" });
+          }
+
+          if (!db.objectStoreNames.contains(STORE_MATERIALS)) {
+            const store = db.createObjectStore(STORE_MATERIALS, { keyPath: "id" });
+            store.createIndex("byNameEn", "name_en", { unique: false });
+          } else {
+            const store = request.transaction.objectStore(STORE_MATERIALS);
+            if (!store.indexNames.contains("byNameEn")) {
+              store.createIndex("byNameEn", "name_en", { unique: false });
+            }
+          }
+        };
+
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+      });
+
+      await this.#migrateLegacyData();
+    });
   }
 
   async #migrateLegacyData() {
@@ -251,87 +273,107 @@ export class IndexedDbProvider extends StorageProvider {
   }
 
   async getProject() {
-    const tx = this.db.transaction(STORE_PROJECT, "readonly");
-    const store = tx.objectStore(STORE_PROJECT);
-    const result = await promisifyRequest(store.get("singleton"));
-    return result?.data ?? null;
+    return this.#withTrackedOperation("get_project", async () => {
+      const tx = this.db.transaction(STORE_PROJECT, "readonly");
+      const store = tx.objectStore(STORE_PROJECT);
+      const result = await promisifyRequest(store.get("singleton"));
+      return result?.data ?? null;
+    });
   }
 
   async saveProject(project) {
-    const tx = this.db.transaction(STORE_PROJECT, "readwrite");
-    const store = tx.objectStore(STORE_PROJECT);
-    store.put({ id: "singleton", data: project, updatedAt: Date.now() });
-    await txDone(tx);
-    return project;
+    return this.#withTrackedOperation("save_project", async () => {
+      const tx = this.db.transaction(STORE_PROJECT, "readwrite");
+      const store = tx.objectStore(STORE_PROJECT);
+      store.put({ id: "singleton", data: project, updatedAt: Date.now() });
+      await txDone(tx);
+      return project;
+    });
   }
 
   async listMaterials() {
-    const tx = this.db.transaction(STORE_MATERIALS, "readonly");
-    const store = tx.objectStore(STORE_MATERIALS);
-    const materials = await promisifyRequest(store.getAll());
-    return materials.sort((a, b) => {
-      const aName = (a.name_en || a.name_ar || "").toLowerCase();
-      const bName = (b.name_en || b.name_ar || "").toLowerCase();
-      return aName.localeCompare(bName);
+    return this.#withTrackedOperation("list_materials", async () => {
+      const tx = this.db.transaction(STORE_MATERIALS, "readonly");
+      const store = tx.objectStore(STORE_MATERIALS);
+      const materials = await promisifyRequest(store.getAll());
+      return materials.sort((a, b) => {
+        const aName = (a.name_en || a.name_ar || "").toLowerCase();
+        const bName = (b.name_en || b.name_ar || "").toLowerCase();
+        return aName.localeCompare(bName);
+      });
     });
   }
 
   async upsertMaterial(material) {
-    const tx = this.db.transaction(STORE_MATERIALS, "readwrite");
-    tx.objectStore(STORE_MATERIALS).put({ ...material, updatedAt: Date.now() });
-    await txDone(tx);
-    return material;
+    return this.#withTrackedOperation("upsert_material", async () => {
+      const tx = this.db.transaction(STORE_MATERIALS, "readwrite");
+      tx.objectStore(STORE_MATERIALS).put({ ...material, updatedAt: Date.now() });
+      await txDone(tx);
+      return material;
+    });
   }
 
   async getMaterialById(materialId) {
-    const tx = this.db.transaction(STORE_MATERIALS, "readonly");
-    return promisifyRequest(tx.objectStore(STORE_MATERIALS).get(materialId));
+    return this.#withTrackedOperation("get_material", async () => {
+      const tx = this.db.transaction(STORE_MATERIALS, "readonly");
+      return promisifyRequest(tx.objectStore(STORE_MATERIALS).get(materialId));
+    });
   }
 
   async deleteMaterial(materialId) {
-    const tx = this.db.transaction([STORE_MATERIALS, STORE_PRODUCTS], "readwrite");
-    tx.objectStore(STORE_MATERIALS).delete(materialId);
+    return this.#withTrackedOperation("delete_material", async () => {
+      const tx = this.db.transaction([STORE_MATERIALS, STORE_PRODUCTS], "readwrite");
+      tx.objectStore(STORE_MATERIALS).delete(materialId);
 
-    const productsStore = tx.objectStore(STORE_PRODUCTS);
-    const products = await promisifyRequest(productsStore.getAll());
-    products.forEach((product) => {
-      const recipe = (product.recipe || []).filter((component) => component.materialId !== materialId);
-      productsStore.put({ ...product, recipe, updatedAt: Date.now() });
+      const productsStore = tx.objectStore(STORE_PRODUCTS);
+      const products = await promisifyRequest(productsStore.getAll());
+      products.forEach((product) => {
+        const recipe = (product.recipe || []).filter((component) => component.materialId !== materialId);
+        productsStore.put({ ...product, recipe, updatedAt: Date.now() });
+      });
+
+      await txDone(tx);
     });
-
-    await txDone(tx);
   }
 
   async listProducts() {
-    const tx = this.db.transaction(STORE_PRODUCTS, "readonly");
-    const store = tx.objectStore(STORE_PRODUCTS);
-    const products = await promisifyRequest(store.getAll());
-    return products.sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+    return this.#withTrackedOperation("list_products", async () => {
+      const tx = this.db.transaction(STORE_PRODUCTS, "readonly");
+      const store = tx.objectStore(STORE_PRODUCTS);
+      const products = await promisifyRequest(store.getAll());
+      return products.sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+    });
   }
 
   async upsertProduct(product) {
-    const tx = this.db.transaction(STORE_PRODUCTS, "readwrite");
-    const normalized = {
-      ...product,
-      variants: (product.variants || []).map((variant, index) => normalizeVariant(variant, product, index)),
-      updatedAt: Date.now()
-    };
-    tx.objectStore(STORE_PRODUCTS).put(normalized);
-    await txDone(tx);
-    return normalized;
+    return this.#withTrackedOperation("upsert_product", async () => {
+      const tx = this.db.transaction(STORE_PRODUCTS, "readwrite");
+      const normalized = {
+        ...product,
+        variants: (product.variants || []).map((variant, index) => normalizeVariant(variant, product, index)),
+        updatedAt: Date.now()
+      };
+      tx.objectStore(STORE_PRODUCTS).put(normalized);
+      await txDone(tx);
+      return normalized;
+    });
   }
 
   async deleteProduct(productId) {
-    const tx = this.db.transaction(STORE_PRODUCTS, "readwrite");
-    tx.objectStore(STORE_PRODUCTS).delete(productId);
-    await txDone(tx);
+    return this.#withTrackedOperation("delete_product", async () => {
+      const tx = this.db.transaction(STORE_PRODUCTS, "readwrite");
+      tx.objectStore(STORE_PRODUCTS).delete(productId);
+      await txDone(tx);
+    });
   }
 
   async clearAllData() {
-    const tx = this.db.transaction([STORE_PROJECT, STORE_PRODUCTS, STORE_MATERIALS], "readwrite");
-    tx.objectStore(STORE_PROJECT).clear();
-    tx.objectStore(STORE_PRODUCTS).clear();
-    tx.objectStore(STORE_MATERIALS).clear();
-    await txDone(tx);
+    return this.#withTrackedOperation("clear_all_data", async () => {
+      const tx = this.db.transaction([STORE_PROJECT, STORE_PRODUCTS, STORE_MATERIALS], "readwrite");
+      tx.objectStore(STORE_PROJECT).clear();
+      tx.objectStore(STORE_PRODUCTS).clear();
+      tx.objectStore(STORE_MATERIALS).clear();
+      await txDone(tx);
+    });
   }
 }

@@ -303,6 +303,10 @@
 
   let activeLocale = "en";
 
+  function analytics() {
+    return window.PricingPlusAnalytics;
+  }
+
   function normalizeLocale(value) {
     return String(value || "").toLowerCase() === "ar" ? "ar" : "en";
   }
@@ -326,9 +330,13 @@
   }
 
   function setLocale(locale) {
+    const previous = activeLocale;
     const next = normalizeLocale(locale);
     localStorage.setItem(LOCALE_KEY, next);
     applyLocale(next);
+    if (previous !== next) {
+      analytics()?.trackEvent("language_switched", { from: previous, to: next });
+    }
   }
 
   function t(locale, key) {
@@ -383,6 +391,7 @@
     if (!copyBtn) return;
 
     copyBtn.addEventListener("click", async () => {
+      analytics()?.trackEvent("support_clicked", { lang: activeLocale });
       const messageOk = t(activeLocale, "supportCopied");
       const messageFail = t(activeLocale, "supportCopyFailed");
       try {
@@ -390,6 +399,29 @@
         alert(messageOk);
       } catch (_) {
         alert(messageFail);
+      }
+    });
+  }
+
+  function bindSupportTracking() {
+    const currentPath = normalizePath(window.location.pathname);
+    if (currentPath === "/support/") {
+      analytics()?.trackEvent("support_page_viewed", { lang: activeLocale });
+    }
+
+    document.addEventListener("click", (event) => {
+      const target = event.target;
+      if (!(target instanceof Element)) return;
+
+      const supportLink = target.closest('a[href="/support/"], a[href="/support/index.html"]');
+      if (supportLink) {
+        analytics()?.trackEvent("support_clicked", { lang: activeLocale });
+        return;
+      }
+
+      const supportAction = target.closest("#copySupportLinkBtn, [data-i18n='supportPaypal'], [data-i18n='supportStripe'], [data-i18n='supportCoffee']");
+      if (supportAction) {
+        analytics()?.trackEvent("support_clicked", { lang: activeLocale });
       }
     });
   }
@@ -467,8 +499,10 @@
   document.addEventListener("DOMContentLoaded", () => {
     applyLocale(getLocale(), { skipPersist: true });
     bindCopySupportLink();
+    bindSupportTracking();
     syncActiveNavLink();
     bindMobileNav();
+    analytics()?.trackPageView({ lang: activeLocale });
 
     document.querySelectorAll(".lang-btn").forEach((btn) => {
       btn.addEventListener("click", (event) => {

@@ -46,6 +46,12 @@ const state = {
   supabase: null,
   authUser: null,
   authToken: "",
+  analytics: {
+    calculatorStarted: false,
+    laborTimeAdded: false,
+    fixedCostsAdded: false,
+    breakevenViewed: false
+  },
   sync: {
     status: "pending",
     lastSyncAt: "",
@@ -61,6 +67,26 @@ const state = {
 function getCanonicalLocale() {
   const locale = localStorage.getItem(LOCALE_KEY);
   return locale === "ar" ? "ar" : "en";
+}
+
+function analytics() {
+  return window.PricingPlusAnalytics;
+}
+
+function getLangCurrencyContext(extra = {}) {
+  return {
+    lang: state.locale === "ar" ? "ar" : "en",
+    currency: state.project?.currencyCode || "USD",
+    ...extra
+  };
+}
+
+function trackEvent(name, params = {}) {
+  analytics()?.trackEvent(name, params);
+}
+
+function trackError(type, message, extra = {}) {
+  analytics()?.trackError(type, message, extra);
 }
 
 function getAuthCopy(locale) {
@@ -1911,37 +1937,76 @@ async function resetProjectAndReload() {
   window.location.replace(getCleanAppUrl());
 }
 
+function hasInvalidMetrics(metrics) {
+  if (!metrics) return true;
+
+  const baseNumbers = [
+    metrics.trueUnitCost,
+    metrics.minimumAcceptablePrice,
+    metrics.suggestedPrice,
+    metrics.monthlyProfit,
+    metrics.sellingPrice,
+    metrics.variableCostPerUnit,
+    metrics.materialsCost,
+    metrics.laborCost,
+    metrics.energyCost,
+    metrics.fixedPerUnit
+  ];
+
+  if (baseNumbers.some((value) => !Number.isFinite(value))) {
+    return true;
+  }
+
+  return (metrics.variantMetrics || []).some((variant) => {
+    const numbers = [
+      variant.variantUnitCost,
+      variant.minimumAcceptablePriceVariant,
+      variant.suggestedPriceVariant,
+      variant.deliveryCost,
+      variant.deliveryCostApplied,
+      variant.extraPackagingCost
+    ];
+    return numbers.some((value) => !Number.isFinite(value));
+  });
+}
+
 function renderResults() {
-  const t = state.t;
-  const isAr = state.locale === "ar";
-  const product = state.products.find((p) => p.id === state.selectedProductId);
-  if (!product) return;
+  try {
+    const t = state.t;
+    const isAr = state.locale === "ar";
+    const product = state.products.find((p) => p.id === state.selectedProductId);
+    if (!product) return;
 
-  const sellingPrice = toNumber(refs.resultSellingPrice.value, 0);
-  const metrics = buildProductMetrics(state.project, product, state.materialsLibrary, sellingPrice);
-  const allProductsSummary = document.getElementById("allProductsSummary");
-  const productsCompare = document.getElementById("productsCompare");
-  const unitResultsTitle = document.getElementById("unitResultsTitle");
-  const variantResultsTitle = document.getElementById("variantResultsTitle");
-  const unitResultsSubtitle = document.getElementById("unitResultsSubtitle");
-  const variantResultsSubtitle = document.getElementById("variantResultsSubtitle");
-  const unitResultsBadge = document.getElementById("unitResultsBadge");
-  const variantResultsBadge = document.getElementById("variantResultsBadge");
-  const unitSectionHeadline = unitResultsTitle?.closest(".section-headline");
-  const variantSectionHeadline = variantResultsTitle?.closest(".section-headline");
+    const sellingPrice = toNumber(refs.resultSellingPrice.value, 0);
+    const metrics = buildProductMetrics(state.project, product, state.materialsLibrary, sellingPrice);
+    if (hasInvalidMetrics(metrics)) {
+      trackEvent("calculation_error", { page: window.location.pathname || "/app/" });
+      setFeedback(t("unexpectedError"));
+      return;
+    }
+    const allProductsSummary = document.getElementById("allProductsSummary");
+    const productsCompare = document.getElementById("productsCompare");
+    const unitResultsTitle = document.getElementById("unitResultsTitle");
+    const variantResultsTitle = document.getElementById("variantResultsTitle");
+    const unitResultsSubtitle = document.getElementById("unitResultsSubtitle");
+    const variantResultsSubtitle = document.getElementById("variantResultsSubtitle");
+    const unitResultsBadge = document.getElementById("unitResultsBadge");
+    const variantResultsBadge = document.getElementById("variantResultsBadge");
+    const unitSectionHeadline = unitResultsTitle?.closest(".section-headline");
+    const variantSectionHeadline = variantResultsTitle?.closest(".section-headline");
 
-  refs.resultsGrid.innerHTML = "";
-  refs.variantCards.innerHTML = "";
-  if (allProductsSummary) allProductsSummary.innerHTML = "";
-  if (productsCompare) productsCompare.innerHTML = "";
-  refs.calculationDetails.classList.add("hidden");
+    refs.resultsGrid.innerHTML = "";
+    refs.variantCards.innerHTML = "";
+    if (allProductsSummary) allProductsSummary.innerHTML = "";
+    if (productsCompare) productsCompare.innerHTML = "";
+    refs.calculationDetails.classList.add("hidden");
 
-  const unitSubtitle = isAr
-    ? "هذه النتائج عامة للمنتج بدون احتساب تكاليف طريقة بيع محددة (توصيل/تغليف/عمولة)."
-    : "Base product results without any specific selling method costs (delivery/packaging/fees).";
-  const variantSubtitle = isAr
-    ? "هذه النتائج تشمل التكاليف الخاصة بكل طريقة بيع (مثل التوصيل، التغليف، عمولة المنصة)."
-    : "These results include each selling method's specific costs (delivery, packaging, platform fees).";
+    const unitSubtitle = isAr
+      ? "هذه النتائج عامة للمنتج بدون احتساب تكاليف طريقة بيع محددة (توصيل/تغليف/عمولة)."
+      : "Base product results without any specific selling method costs (delivery/packaging/fees).";
+    const variantSubtitle = isAr
+      ? "هذه النتائج تشمل التكاليف الخاصة بكل طريقة بيع (مثل التوصيل، التغليف، عمولة المنصة)."
+      : "These results include each selling method's specific costs (delivery, packaging, platform fees).";
 
   if (unitResultsSubtitle) unitResultsSubtitle.textContent = unitSubtitle;
   if (variantResultsSubtitle) variantResultsSubtitle.textContent = variantSubtitle;
@@ -1981,8 +2046,8 @@ function renderResults() {
     productsCompare?.classList.toggle("hidden", visible);
   };
 
-  if (state.products.length > 1) {
-    setSingleResultsVisibility(false);
+    if (state.products.length > 1) {
+      setSingleResultsVisibility(false);
 
     const productsMetrics = state.products.map((item) => ({
       product: item,
@@ -2066,11 +2131,16 @@ function renderResults() {
       });
     }
 
-    refs.monthlyTable.innerHTML = "";
-    refs.calculationDetails.innerHTML = "";
-    setFeedback(t("feedbackCalculated"));
-    return;
-  }
+      refs.monthlyTable.innerHTML = "";
+      refs.calculationDetails.innerHTML = "";
+      trackEvent("result_displayed", getLangCurrencyContext());
+      if (!state.analytics.breakevenViewed) {
+        trackEvent("breakeven_viewed", getLangCurrencyContext());
+        state.analytics.breakevenViewed = true;
+      }
+      setFeedback(t("feedbackCalculated"));
+      return;
+    }
 
   setSingleResultsVisibility(true);
 
@@ -2164,7 +2234,17 @@ function renderResults() {
     </ul>
   `;
 
-  setFeedback(t("feedbackCalculated"));
+    trackEvent("result_displayed", getLangCurrencyContext());
+    if (!state.analytics.breakevenViewed) {
+      trackEvent("breakeven_viewed", getLangCurrencyContext());
+      state.analytics.breakevenViewed = true;
+    }
+
+    setFeedback(t("feedbackCalculated"));
+  } catch (error) {
+    trackEvent("calculation_error", { page: window.location.pathname || "/app/" });
+    setFeedback(state.t("unexpectedError"));
+  }
 }
 
 async function exportAllAsCsv() {
@@ -2410,6 +2490,19 @@ function fillSettingsFromState() {
 }
 
 function bindEvents() {
+  const firstInputHandler = (event) => {
+    if (state.analytics.calculatorStarted) return;
+    const target = event.target;
+    if (!(target instanceof HTMLInputElement || target instanceof HTMLSelectElement || target instanceof HTMLTextAreaElement)) {
+      return;
+    }
+    state.analytics.calculatorStarted = true;
+    trackEvent("calculator_started");
+  };
+
+  document.addEventListener("input", firstInputHandler, true);
+  document.addEventListener("change", firstInputHandler, true);
+
   document.querySelectorAll(".step").forEach((btn) => {
     btn.addEventListener("click", () => navigate(btn.dataset.step));
   });
@@ -2427,11 +2520,32 @@ function bindEvents() {
   refs.advancedModeBtn.addEventListener("click", () => applyUiMode("advanced"));
 
   refs.currencyCode.addEventListener("change", () => {
-    state.project.currencyCode = refs.currencyCode.value || "USD";
+    const from = state.project.currencyCode || "USD";
+    const to = refs.currencyCode.value || "USD";
+    state.project.currencyCode = to;
+    if (from !== to) {
+      trackEvent("currency_changed", { from, to, lang: state.locale });
+    }
     renderCurrencySelect();
   });
 
   refs.hourlyRate.addEventListener("input", renderHourlyRateWarning);
+  refs.laborMinutes.addEventListener("input", () => {
+    if (state.analytics.laborTimeAdded) return;
+    if (toNumber(refs.laborMinutes.value, 0) <= 0) return;
+    state.analytics.laborTimeAdded = true;
+    trackEvent("labor_time_added");
+  });
+
+  refs.fixedCostsList.addEventListener("input", (event) => {
+    if (state.analytics.fixedCostsAdded) return;
+    const target = event.target;
+    if (!(target instanceof HTMLInputElement)) return;
+    if (target.type !== "number") return;
+    if (toNumber(target.value, 0) <= 0) return;
+    state.analytics.fixedCostsAdded = true;
+    trackEvent("fixed_costs_added");
+  });
 
   refs.hourlyRateTooltip.addEventListener("click", () => {
     const isHidden = refs.hourlyRateTooltipText.classList.toggle("hidden");
@@ -2511,7 +2625,10 @@ function bindEvents() {
     state.selectedProductId = refs.resultProductSelect.value;
   });
 
-  refs.calculateBtn.addEventListener("click", renderResults);
+  refs.calculateBtn.addEventListener("click", () => {
+    trackEvent("calculate_clicked", getLangCurrencyContext());
+    renderResults();
+  });
   refs.howCalculatedBtn.addEventListener("click", () => {
     refs.calculationDetails.classList.toggle("hidden");
   });
@@ -2577,6 +2694,7 @@ async function init() {
   await initAuth();
   applyLocale(getCanonicalLocale());
   fillSettingsFromState();
+  analytics()?.trackPageView(getLangCurrencyContext());
   resetMaterialForm();
   resetProductForm();
   await consumeDemoFromQuery();
