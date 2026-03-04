@@ -11,6 +11,7 @@ import { IndexedDbProvider } from "./storage/indexedDbProvider.js";
 import { exportCsv, exportXlsx, exportPdf } from "./services/exportService.js";
 import { formatMoney, formatNumber, toNumber } from "./utils/format.js";
 import { uid } from "./utils/id.js";
+import { escapeHTML } from "./utils/security.js";
 import { SUPABASE_URL, SUPABASE_ANON_KEY, getSupabaseClient, hasSupabaseConfig } from "../site/supabaseClient.js";
 
 const storage = new IndexedDbProvider();
@@ -782,7 +783,7 @@ function scheduleAutoSync() {
   // Debounce writes to avoid frequent cloud requests while user is actively editing.
   state.sync.debounceId = setTimeout(() => {
     state.sync.debounceId = null;
-    runAutoSync(false).catch(() => {});
+    runAutoSync(false).catch(() => { });
   }, AUTO_SYNC_DEBOUNCE_MS);
 }
 
@@ -797,7 +798,7 @@ async function runAutoSync(force = false) {
       // Throttle cloud calls so we do not sync more often than once per 30s.
       state.sync.throttleId = setTimeout(() => {
         state.sync.throttleId = null;
-        runAutoSync(false).catch(() => {});
+        runAutoSync(false).catch(() => { });
       }, wait);
     }
     return false;
@@ -1194,7 +1195,7 @@ function renderMaterialsLibraryList() {
     const unitCost = calculateMaterialBaseUnitCost(material);
 
     const info = document.createElement("div");
-    info.innerHTML = `<strong>${getMaterialDisplayName(material)}</strong><div class="meta">${unitTypeLabel(material.unitType)} • ${pricingModeLabel(material.pricingMode)} • ${formatMoney(unitCost, state.project.currencyCode, state.locale)}</div>`;
+    info.innerHTML = `<strong>${escapeHTML(getMaterialDisplayName(material))}</strong><div class="meta">${escapeHTML(unitTypeLabel(material.unitType))} • ${escapeHTML(pricingModeLabel(material.pricingMode))} • ${escapeHTML(formatMoney(unitCost, state.project.currencyCode, state.locale))}</div>`;
 
     const actions = document.createElement("div");
     actions.className = "item-actions";
@@ -1672,7 +1673,7 @@ function renderProductsList() {
     item.className = "product-item";
 
     const info = document.createElement("div");
-    info.innerHTML = `<strong>${product.name}</strong><div class="meta">${product.recipe.length} ${t("recipeItemsShort")} • ${product.variants.length} ${t("variantsShort")}</div>`;
+    info.innerHTML = `<strong>${escapeHTML(product.name)}</strong><div class="meta">${escapeHTML(product.recipe.length)} ${escapeHTML(t("recipeItemsShort"))} • ${escapeHTML(product.variants.length)} ${escapeHTML(t("variantsShort"))}</div>`;
 
     const actions = document.createElement("div");
     actions.className = "item-actions";
@@ -2008,128 +2009,132 @@ function renderResults() {
       ? "هذه النتائج تشمل التكاليف الخاصة بكل طريقة بيع (مثل التوصيل، التغليف، عمولة المنصة)."
       : "These results include each selling method's specific costs (delivery, packaging, platform fees).";
 
-  if (unitResultsSubtitle) unitResultsSubtitle.textContent = unitSubtitle;
-  if (variantResultsSubtitle) variantResultsSubtitle.textContent = variantSubtitle;
-  if (unitResultsBadge) unitResultsBadge.textContent = isAr ? "أساسي" : "Baseline";
-  if (variantResultsBadge) variantResultsBadge.textContent = isAr ? "حسب الطريقة" : "Per method";
+    if (unitResultsSubtitle) unitResultsSubtitle.textContent = unitSubtitle;
+    if (variantResultsSubtitle) variantResultsSubtitle.textContent = variantSubtitle;
+    if (unitResultsBadge) unitResultsBadge.textContent = isAr ? "أساسي" : "Baseline";
+    if (variantResultsBadge) variantResultsBadge.textContent = isAr ? "حسب الطريقة" : "Per method";
 
-  const getDeltaLine = (variantMetrics) => {
-    const deltaDrivers = [];
-    if (toNumber(variantMetrics.extraPackagingCost, 0) > 0) {
-      deltaDrivers.push(`${isAr ? "تغليف/رسوم" : "Packaging/fees"} +${formatMoney(variantMetrics.extraPackagingCost, state.project.currencyCode, state.locale)}`);
-    }
-    if (variantMetrics.hasDelivery && variantMetrics.deliveryAffectsProfit && toNumber(variantMetrics.deliveryCostApplied, 0) > 0) {
-      deltaDrivers.push(`${isAr ? "توصيل" : "Delivery"} +${formatMoney(variantMetrics.deliveryCostApplied, state.project.currencyCode, state.locale)}${isAr ? " (يتحمله التاجر)" : " (merchant-paid)"}`);
-    }
-    const customerDeliveryNote = variantMetrics.hasDelivery && !variantMetrics.deliveryAffectsProfit
-      ? (isAr
-        ? "التوصيل: يدفعه الزبون (لا يؤثر على ربحك)"
-        : "Delivery: paid by customer (does not affect profit)")
-      : "";
+    const getDeltaLine = (variantMetrics) => {
+      const deltaDrivers = [];
+      if (toNumber(variantMetrics.extraPackagingCost, 0) > 0) {
+        deltaDrivers.push(`${isAr ? "تغليف/رسوم" : "Packaging/fees"} +${formatMoney(variantMetrics.extraPackagingCost, state.project.currencyCode, state.locale)}`);
+      }
+      if (variantMetrics.hasDelivery && variantMetrics.deliveryAffectsProfit && toNumber(variantMetrics.deliveryCostApplied, 0) > 0) {
+        deltaDrivers.push(`${isAr ? "توصيل" : "Delivery"} +${formatMoney(variantMetrics.deliveryCostApplied, state.project.currencyCode, state.locale)}${isAr ? " (يتحمله التاجر)" : " (merchant-paid)"}`);
+      }
+      const customerDeliveryNote = variantMetrics.hasDelivery && !variantMetrics.deliveryAffectsProfit
+        ? (isAr
+          ? "التوصيل: يدفعه الزبون (لا يؤثر على ربحك)"
+          : "Delivery: paid by customer (does not affect profit)")
+        : "";
 
-    return deltaDrivers.length
-      ? `${isAr ? "يشمل:" : "Includes:"} ${deltaDrivers.join(" • ")}${customerDeliveryNote ? ` • ${customerDeliveryNote}` : ""}`
-      : (customerDeliveryNote || (isAr ? "لا توجد تكاليف إضافية لهذه الطريقة." : "No extra costs for this method."));
-  };
+      return deltaDrivers.length
+        ? `${isAr ? "يشمل:" : "Includes:"} ${deltaDrivers.join(" • ")}${customerDeliveryNote ? ` • ${customerDeliveryNote}` : ""}`
+        : (customerDeliveryNote || (isAr ? "لا توجد تكاليف إضافية لهذه الطريقة." : "No extra costs for this method."));
+    };
 
-  const setSingleResultsVisibility = (visible) => {
-    refs.statusBadge.classList.toggle("hidden", !visible);
-    refs.resultsGrid.classList.toggle("hidden", !visible);
-    refs.variantCards.classList.toggle("hidden", !visible);
-    refs.monthlyTable.classList.toggle("hidden", !visible);
-    refs.calculationDetails.classList.toggle("hidden", true);
-    unitSectionHeadline?.classList.toggle("hidden", !visible);
-    variantSectionHeadline?.classList.toggle("hidden", !visible);
-    unitResultsSubtitle?.classList.toggle("hidden", !visible);
-    variantResultsSubtitle?.classList.toggle("hidden", !visible);
-    allProductsSummary?.classList.toggle("hidden", visible);
-    productsCompare?.classList.toggle("hidden", visible);
-  };
+    const setSingleResultsVisibility = (visible) => {
+      refs.statusBadge.classList.toggle("hidden", !visible);
+      refs.resultsGrid.classList.toggle("hidden", !visible);
+      refs.variantCards.classList.toggle("hidden", !visible);
+      refs.monthlyTable.classList.toggle("hidden", !visible);
+      refs.calculationDetails.classList.toggle("hidden", true);
+      unitSectionHeadline?.classList.toggle("hidden", !visible);
+      variantSectionHeadline?.classList.toggle("hidden", !visible);
+      unitResultsSubtitle?.classList.toggle("hidden", !visible);
+      variantResultsSubtitle?.classList.toggle("hidden", !visible);
+      allProductsSummary?.classList.toggle("hidden", visible);
+      productsCompare?.classList.toggle("hidden", visible);
+    };
 
     if (state.products.length > 1) {
       setSingleResultsVisibility(false);
 
-    const productsMetrics = state.products.map((item) => ({
-      product: item,
-      metrics: buildProductMetrics(state.project, item, state.materialsLibrary, sellingPrice)
-    }));
+      const productsMetrics = state.products.map((item) => ({
+        product: item,
+        metrics: buildProductMetrics(state.project, item, state.materialsLibrary, sellingPrice)
+      }));
 
-    const totalMonthlyProfit = productsMetrics.reduce((sum, entry) => sum + (Number.isFinite(entry.metrics.monthlyProfit) ? entry.metrics.monthlyProfit : 0), 0);
-    const expectedSales = Math.max(0, toNumber(state.project.expectedMonthlySales, 0));
-    const revenueAvailable = expectedSales > 0 && productsMetrics.every((entry) => Number.isFinite(entry.metrics.sellingPrice));
-    const totalRevenue = revenueAvailable
-      ? productsMetrics.reduce((sum, entry) => sum + (entry.metrics.sellingPrice * expectedSales), 0)
-      : null;
+      const totalMonthlyProfit = productsMetrics.reduce((sum, entry) => sum + (Number.isFinite(entry.metrics.monthlyProfit) ? entry.metrics.monthlyProfit : 0), 0);
+      const expectedSales = Math.max(0, toNumber(state.project.expectedMonthlySales, 0));
+      const revenueAvailable = expectedSales > 0 && productsMetrics.every((entry) => Number.isFinite(entry.metrics.sellingPrice));
+      const totalRevenue = revenueAvailable
+        ? productsMetrics.reduce((sum, entry) => sum + (entry.metrics.sellingPrice * expectedSales), 0)
+        : null;
 
-    if (allProductsSummary) {
-      allProductsSummary.classList.remove("hidden");
-      allProductsSummary.innerHTML = `
-        <div class="results-summary-head">
-          <h3>${isAr ? "ملخص جميع المنتجات" : "All products summary"}</h3>
-          <span class="badge scope-badge">${isAr ? `عدد المنتجات: ${state.products.length}` : `Products: ${state.products.length}`}</span>
+      if (allProductsSummary) {
+        allProductsSummary.classList.remove("hidden");
+        allProductsSummary.innerHTML = `
+        <div class="summary-head">
+          <div class="summary-title">${escapeHTML(t("allProductsSummaryTitle"))}</div>
+          <div class="summary-subtitle">${escapeHTML(t("allProductsSummarySubtitle"))}</div>
         </div>
-        <div class="results-summary-grid">
-          <article class="metric">
-            <div class="name">${t("metricMonthlyProfit")}</div>
-            <div class="value">${formatMoney(totalMonthlyProfit, state.project.currencyCode, state.locale)}</div>
-          </article>
+        <div class="summary-metrics">
+          <div class="metric">
+            <div class="name">${escapeHTML(t("totalProducts"))}</div>
+            <div class="value">${escapeHTML(productsMetrics.length)}</div>
+          </div>
+          <div class="metric">
+            <div class="name">${escapeHTML(t("totalExpectedProfit"))}</div>
+            <div class="value" style="color:var(--color-primary)">${escapeHTML(formatMoney(totalMonthlyProfit, state.project.currencyCode, state.locale))}</div>
+          </div>
           ${totalRevenue === null
             ? ""
-            : `<article class="metric">
-                <div class="name">${isAr ? "إجمالي الإيراد الشهري المتوقع" : "Total expected monthly revenue"}</div>
-                <div class="value">${formatMoney(totalRevenue, state.project.currencyCode, state.locale)}</div>
-              </article>`}
+            : `<div class="metric">
+                <div class="name">${escapeHTML(isAr ? "إجمالي الإيراد الشهري المتوقع" : "Total expected monthly revenue")}</div>
+                <div class="value">${escapeHTML(formatMoney(totalRevenue, state.project.currencyCode, state.locale))}</div>
+              </div>`}
         </div>
       `;
-    }
+      }
 
-    if (productsCompare) {
-      productsCompare.classList.remove("hidden");
-      const tableTitle = document.createElement("h3");
-      tableTitle.textContent = isAr ? "مقارنة المنتجات" : "Products comparison";
-      productsCompare.append(tableTitle);
+      if (productsCompare) {
+        productsCompare.classList.remove("hidden");
+        const tableTitle = document.createElement("h3");
+        tableTitle.textContent = isAr ? "مقارنة المنتجات" : "Products comparison";
+        productsCompare.append(tableTitle);
 
-      productsMetrics.forEach(({ product: productItem, metrics: productMetrics }) => {
-        const row = document.createElement("article");
-        row.className = "product-row";
+        productsMetrics.forEach(({ product: productItem, metrics: productMetrics }) => {
+          const row = document.createElement("article");
+          row.className = "product-row";
 
-        const productStatus = getProfitStatus(productMetrics.variantMetrics[0] || productMetrics);
-        const variantDetails = productMetrics.variantMetrics.map((variantMetrics) => `
+          const productStatus = getProfitStatus(productMetrics.variantMetrics[0] || productMetrics);
+          const variantDetails = productMetrics.variantMetrics.map((variantMetrics) => `
           <div class="product-variant-row">
             <div class="metric-head">
-              <strong>${normalizeLegacyLabel(variantMetrics.name, "defaultVariantName")}</strong>
-              <span class="badge scope-badge">${isAr ? "حسب الطريقة" : "Per method"}</span>
+              <strong>${escapeHTML(normalizeLegacyLabel(variantMetrics.name, "defaultVariantName"))}</strong>
+              <span class="badge scope-badge">${escapeHTML(isAr ? "حسب الطريقة" : "Per method")}</span>
             </div>
             <div class="product-variant-grid">
-              <div>${t("metricTrueUnitCost")}: <strong>${formatMoney(variantMetrics.variantUnitCost, state.project.currencyCode, state.locale)}</strong></div>
-              <div>${t("metricMinimumAcceptablePrice")}: <strong>${formatMoney(variantMetrics.minimumAcceptablePriceVariant, state.project.currencyCode, state.locale)}</strong></div>
-              <div>${t("metricSuggestedPrice")}: <strong>${formatMoney(variantMetrics.suggestedPriceVariant, state.project.currencyCode, state.locale)}</strong></div>
-              <div>${t("metricBreakEvenUnits")}: <strong>${Number.isFinite(variantMetrics.breakEvenUnitsVariant) ? formatNumber(variantMetrics.breakEvenUnitsVariant, state.locale, 2) : t("breakEvenImpossible")}</strong></div>
+              <div>${escapeHTML(t("metricTrueUnitCost"))}: <strong>${escapeHTML(formatMoney(variantMetrics.variantUnitCost, state.project.currencyCode, state.locale))}</strong></div>
+              <div>${escapeHTML(t("metricMinimumAcceptablePrice"))}: <strong>${escapeHTML(formatMoney(variantMetrics.minimumAcceptablePriceVariant, state.project.currencyCode, state.locale))}</strong></div>
+              <div>${escapeHTML(t("metricSuggestedPrice"))}: <strong>${escapeHTML(formatMoney(variantMetrics.suggestedPriceVariant, state.project.currencyCode, state.locale))}</strong></div>
+              <div>${escapeHTML(t("metricBreakEvenUnits"))}: <strong>${escapeHTML(Number.isFinite(variantMetrics.breakEvenUnitsVariant) ? formatNumber(variantMetrics.breakEvenUnitsVariant, state.locale, 2) : t("breakEvenImpossible"))}</strong></div>
             </div>
-            <div class="delta-line">${getDeltaLine(variantMetrics)}</div>
+            <div class="delta-line">${escapeHTML(getDeltaLine(variantMetrics))}</div>
           </div>
         `).join("");
 
-        row.innerHTML = `
+          row.innerHTML = `
           <div class="product-row-head">
-            <h4>${productItem.name}</h4>
-            <span class="badge ${productStatus}">${t(productStatus === "green" ? "statusGreen" : productStatus === "yellow" ? "statusYellow" : "statusRed")}</span>
+            <h4>${escapeHTML(productItem.name)}</h4>
+            <span class="badge ${escapeHTML(productStatus)}">${escapeHTML(t(productStatus === "green" ? "statusGreen" : productStatus === "yellow" ? "statusYellow" : "statusRed"))}</span>
           </div>
           <div class="product-row-grid">
-            <div><span class="muted">${t("metricTrueUnitCost")}</span><strong>${formatMoney(productMetrics.trueUnitCost, state.project.currencyCode, state.locale)}</strong></div>
-            <div><span class="muted">${t("metricMinimumAcceptablePrice")}</span><strong>${formatMoney(productMetrics.minimumAcceptablePrice, state.project.currencyCode, state.locale)}</strong></div>
-            <div><span class="muted">${t("metricSuggestedPrice")}</span><strong>${formatMoney(productMetrics.suggestedPrice, state.project.currencyCode, state.locale)}</strong></div>
-            <div><span class="muted">${t("metricBreakEvenUnits")}</span><strong>${Number.isFinite(productMetrics.breakEvenUnits) ? formatNumber(productMetrics.breakEvenUnits, state.locale, 2) : t("breakEvenImpossible")}</strong></div>
-            <div><span class="muted">${t("metricMonthlyProfit")}</span><strong>${formatMoney(productMetrics.monthlyProfit, state.project.currencyCode, state.locale)}</strong></div>
+            <div><span class="muted">${escapeHTML(t("metricTrueUnitCost"))}</span><strong>${escapeHTML(formatMoney(productMetrics.trueUnitCost, state.project.currencyCode, state.locale))}</strong></div>
+            <div><span class="muted">${escapeHTML(t("metricMinimumAcceptablePrice"))}</span><strong>${escapeHTML(formatMoney(productMetrics.minimumAcceptablePrice, state.project.currencyCode, state.locale))}</strong></div>
+            <div><span class="muted">${escapeHTML(t("metricSuggestedPrice"))}</span><strong>${escapeHTML(formatMoney(productMetrics.suggestedPrice, state.project.currencyCode, state.locale))}</strong></div>
+            <div><span class="muted">${escapeHTML(t("metricBreakEvenUnits"))}</span><strong>${escapeHTML(Number.isFinite(productMetrics.breakEvenUnits) ? formatNumber(productMetrics.breakEvenUnits, state.locale, 2) : t("breakEvenImpossible"))}</strong></div>
+            <div><span class="muted">${escapeHTML(t("metricMonthlyProfit"))}</span><strong>${escapeHTML(formatMoney(productMetrics.monthlyProfit, state.project.currencyCode, state.locale))}</strong></div>
           </div>
           <details class="product-variant-details">
-            <summary>${isAr ? "تفاصيل طرق البيع" : "Variant method details"}</summary>
+            <summary>${escapeHTML(isAr ? "تفاصيل طرق البيع" : "Variant method details")}</summary>
             <div class="product-variant-list">${variantDetails}</div>
           </details>
         `;
-        productsCompare.append(row);
-      });
-    }
+          productsCompare.append(row);
+        });
+      }
 
       refs.monthlyTable.innerHTML = "";
       refs.calculationDetails.innerHTML = "";
@@ -2142,96 +2147,97 @@ function renderResults() {
       return;
     }
 
-  setSingleResultsVisibility(true);
+    setSingleResultsVisibility(true);
 
-  const list = [
-    [t("metricTrueUnitCost"), formatMoney(metrics.trueUnitCost, state.project.currencyCode, state.locale)],
-    [t("metricMinimumAcceptablePrice"), formatMoney(metrics.minimumAcceptablePrice, state.project.currencyCode, state.locale)],
-    [t("metricSuggestedPrice"), formatMoney(metrics.suggestedPrice, state.project.currencyCode, state.locale)],
-    [t("metricBreakEvenUnits"), Number.isFinite(metrics.breakEvenUnits) ? formatNumber(metrics.breakEvenUnits, state.locale, 2) : t("breakEvenImpossible")],
-    [t("metricMonthlyProfit"), formatMoney(metrics.monthlyProfit, state.project.currencyCode, state.locale)]
-  ];
+    const list = [
+      [t("metricTrueUnitCost"), formatMoney(metrics.trueUnitCost, state.project.currencyCode, state.locale)],
+      [t("metricMinimumAcceptablePrice"), formatMoney(metrics.minimumAcceptablePrice, state.project.currencyCode, state.locale)],
+      [t("metricSuggestedPrice"), formatMoney(metrics.suggestedPrice, state.project.currencyCode, state.locale)],
+      [t("metricBreakEvenUnits"), Number.isFinite(metrics.breakEvenUnits) ? formatNumber(metrics.breakEvenUnits, state.locale, 2) : t("breakEvenImpossible")],
+      [t("metricMonthlyProfit"), formatMoney(metrics.monthlyProfit, state.project.currencyCode, state.locale)]
+    ];
 
-  list.forEach(([name, value], index) => {
-    const box = document.createElement("article");
-    box.className = index === 0 ? "metric metric-primary" : "metric";
-    box.innerHTML = `<div class="name">${name}</div><div class="value">${value}</div>`;
-    refs.resultsGrid.append(box);
-  });
+    list.forEach(([name, value], index) => {
+      const box = document.createElement("article");
+      box.className = index === 0 ? "metric metric-primary" : "metric";
+      box.innerHTML = `<div class="name">${escapeHTML(name)}</div><div class="value">${escapeHTML(value)}</div>`;
+      refs.resultsGrid.append(box);
+    });
 
-  metrics.variantMetrics.forEach((variant) => {
-    const status = getProfitStatus(variant);
-    let deliveryLine = t("variantDeliveryNone");
-    if (variant.hasDelivery) {
-      const modeKey = variant.deliveryPricingMode === "merchant_free"
-        ? "variantDeliveryModeMerchantFree"
-        : (variant.deliveryPricingMode === "included_in_price" ? "variantDeliveryModeIncludedInPrice" : "variantDeliveryModeCustomerSeparate");
-      const basisKey = variant.deliveryCostBasis === "perUnit" ? "variantDeliveryBasisPerUnit" : "variantDeliveryBasisPerOrder";
-      deliveryLine = `${t(modeKey)} • ${t(basisKey)} • ${formatMoney(variant.deliveryCost, state.project.currencyCode, state.locale)}`;
-    }
+    metrics.variantMetrics.forEach((variant) => {
+      const status = getProfitStatus(variant);
+      let deliveryLine = t("variantDeliveryNone");
+      if (variant.hasDelivery) {
+        const modeKey = variant.deliveryPricingMode === "merchant_free"
+          ? "variantDeliveryModeMerchantFree"
+          : (variant.deliveryPricingMode === "included_in_price" ? "variantDeliveryModeIncludedInPrice" : "variantDeliveryModeCustomerSeparate");
+        const basisKey = variant.deliveryCostBasis === "perUnit" ? "variantDeliveryBasisPerUnit" : "variantDeliveryBasisPerOrder";
+        deliveryLine = `${t(modeKey)} • ${t(basisKey)} • ${formatMoney(variant.deliveryCost, state.project.currencyCode, state.locale)}`;
+      }
 
-    const deliveryCalcLine = variant.hasDelivery
-      ? (variant.deliveryAffectsProfit
-        ? `${t("metricDeliveryCost")}: ${formatMoney(variant.deliveryCostApplied, state.project.currencyCode, state.locale)}`
-        : t("deliverySeparateInfo"))
-      : t("variantDeliveryNone");
+      const deliveryCalcLine = variant.hasDelivery
+        ? (variant.deliveryAffectsProfit
+          ? `${t("metricDeliveryCost")}: ${formatMoney(variant.deliveryCostApplied, state.project.currencyCode, state.locale)}`
+          : t("deliverySeparateInfo"))
+        : t("variantDeliveryNone");
 
-    const deltaLine = getDeltaLine(variant);
+      const deltaLine = getDeltaLine(variant);
 
-    const card = document.createElement("article");
-    card.className = "metric";
-    card.innerHTML = `
+      const card = document.createElement("article");
+      card.className = "metric";
+      card.innerHTML = `
       <div class="metric-head">
-        <div class="name">${normalizeLegacyLabel(variant.name, "defaultVariantName")}</div>
-        <span class="badge scope-badge">${isAr ? "حسب الطريقة" : "Per method"}</span>
+        <div class="name">${escapeHTML(normalizeLegacyLabel(variant.name, "defaultVariantName"))}</div>
+        <span class="badge scope-badge">${escapeHTML(isAr ? "حسب الطريقة" : "Per method")}</span>
       </div>
-      <div>${t("metricTrueUnitCost")}: <strong>${formatMoney(variant.variantUnitCost, state.project.currencyCode, state.locale)}</strong></div>
-      <div>${t("metricMinimumAcceptablePrice")}: <strong>${formatMoney(variant.minimumAcceptablePriceVariant, state.project.currencyCode, state.locale)}</strong></div>
-      <div>${t("metricSuggestedPrice")}: <strong>${formatMoney(variant.suggestedPriceVariant, state.project.currencyCode, state.locale)}</strong></div>
-      <div>${t("metricBreakEvenUnits")}: <strong>${Number.isFinite(variant.breakEvenUnitsVariant) ? formatNumber(variant.breakEvenUnitsVariant, state.locale, 2) : t("breakEvenImpossible")}</strong></div>
-      <div>${t("metricExtraPackaging")}: <strong>${formatMoney(variant.extraPackagingCost, state.project.currencyCode, state.locale)}</strong></div>
-      <div>${t("deliveryLabel")}: <strong>${deliveryLine}</strong></div>
-      <div class="muted">${deliveryCalcLine}</div>
-      <div class="delta-line">${deltaLine}</div>
-      <div class="badge ${status}">${t(status === "green" ? "statusGreen" : status === "yellow" ? "statusYellow" : "statusRed")}</div>
+      <div>${escapeHTML(t("metricTrueUnitCost"))}: <strong>${escapeHTML(formatMoney(variant.variantUnitCost, state.project.currencyCode, state.locale))}</strong></div>
+      <div>${escapeHTML(t("metricMinimumAcceptablePrice"))}: <strong>${escapeHTML(formatMoney(variant.minimumAcceptablePriceVariant, state.project.currencyCode, state.locale))}</strong></div>
+      <div>${escapeHTML(t("metricSuggestedPrice"))}: <strong>${escapeHTML(formatMoney(variant.suggestedPriceVariant, state.project.currencyCode, state.locale))}</strong></div>
+      <div>${escapeHTML(t("metricBreakEvenUnits"))}: <strong>${escapeHTML(Number.isFinite(variant.breakEvenUnitsVariant) ? formatNumber(variant.breakEvenUnitsVariant, state.locale, 2) : t("breakEvenImpossible"))}</strong></div>
+      <div>${escapeHTML(t("metricExtraPackaging"))}: <strong>${escapeHTML(formatMoney(variant.extraPackagingCost, state.project.currencyCode, state.locale))}</strong></div>
+      <div>${escapeHTML(t("deliveryLabel"))}: <strong>${escapeHTML(deliveryLine)}</strong></div>
+      <div class="muted">${escapeHTML(deliveryCalcLine)}</div>
+      <div class="delta-line">${escapeHTML(deltaLine)}</div>
+      <div class="badge ${escapeHTML(status)}">${escapeHTML(t(status === "green" ? "statusGreen" : status === "yellow" ? "statusYellow" : "statusRed"))}</div>
     `;
-    refs.variantCards.append(card);
-  });
+      refs.variantCards.append(card);
+    });
 
-  const firstVariant = metrics.variantMetrics[0] || metrics;
-  const status = getProfitStatus(firstVariant);
-  refs.statusBadge.className = `badge ${status}`;
-  refs.statusBadge.textContent = t(status === "green" ? "statusGreen" : status === "yellow" ? "statusYellow" : "statusRed");
+    const firstVariant = metrics.variantMetrics[0] || metrics;
+    const status = getProfitStatus(firstVariant);
+    refs.statusBadge.className = `badge ${status}`;
+    refs.statusBadge.textContent = t(status === "green" ? "statusGreen" : status === "yellow" ? "statusYellow" : "statusRed");
 
-  refs.monthlyTable.innerHTML = `
-    <h3>${t("monthlyTableTitle")}</h3>
-    ${state.project.salesUndefined ? `<p class="warn-note">${t("salesUndefinedWarning")}</p>` : ""}
+    refs.monthlyTable.innerHTML = `
+    <h3>${escapeHTML(t("monthlyTableTitle"))}</h3>
+    ${state.project.salesUndefined ? `<p class="warn-note">${escapeHTML(t("salesUndefinedWarning"))}</p>` : ""}
     <table>
-      <thead><tr><th>${t("monthlyColumnScenario")}</th><th>${t("monthlyColumnValue")}</th></tr></thead>
+      <thead><tr><th>${escapeHTML(t("monthlyColumnScenario"))}</th><th>${escapeHTML(t("monthlyColumnValue"))}</th></tr></thead>
       <tbody>
-        <tr><td>${t("monthlyAtExpectedSales")}</td><td>${formatMoney(metrics.monthlyProfit, state.project.currencyCode, state.locale)}</td></tr>
-        <tr><td>${t("monthlyAtBreakEven")}</td><td>${Number.isFinite(metrics.breakEvenUnits) ? formatNumber(metrics.breakEvenUnits, state.locale, 2) : t("breakEvenImpossible")}</td></tr>
-        <tr><td>${t("monthlyContribution")}</td><td>${formatMoney(metrics.sellingPrice - metrics.variableCostPerUnit, state.project.currencyCode, state.locale)}</td></tr>
+        <tr><td>${escapeHTML(t("monthlyAtExpectedSales"))}</td><td>${escapeHTML(formatMoney(metrics.monthlyProfit, state.project.currencyCode, state.locale))}</td></tr>
+        <tr><td>${escapeHTML(t("monthlyAtBreakEven"))}</td><td>${escapeHTML(Number.isFinite(metrics.breakEvenUnits) ? formatNumber(metrics.breakEvenUnits, state.locale, 2) : t("breakEvenImpossible"))}</td></tr>
+        <tr><td>${escapeHTML(t("monthlyContribution"))}</td><td>${escapeHTML(formatMoney(metrics.sellingPrice - metrics.variableCostPerUnit, state.project.currencyCode, state.locale))}</td></tr>
       </tbody>
     </table>
   `;
 
-  refs.calculationDetails.innerHTML = `
-    <h4>${t("howCalculatedBtn")}</h4>
+    refs.calculationDetails.innerHTML = `
+    <h4>${escapeHTML(t("howCalculatedBtn"))}</h4>
     <ul>
-      <li>${t("metricMaterialsCost")}: ${formatMoney(metrics.materialsCost, state.project.currencyCode, state.locale)}</li>
-      <li>${t("metricLaborCost")}: ${formatMoney(metrics.laborCost, state.project.currencyCode, state.locale)}</li>
-      <li>${t("metricEnergyCost")}: ${formatMoney(metrics.energyCost, state.project.currencyCode, state.locale)}</li>
-      <li>${t("metricFixedShare")}: ${formatMoney(metrics.fixedPerUnit, state.project.currencyCode, state.locale)}</li>
-      <li>${t("metricVariableCost")}: ${formatMoney(metrics.variableCostPerUnit, state.project.currencyCode, state.locale)}</li>
-      <li>${t("deliveryLabel")}: ${metrics.variantMetrics.some((variant) => variant.hasDelivery)
-        ? metrics.variantMetrics.map((variant) => {
-          if (!variant.hasDelivery) return `${normalizeLegacyLabel(variant.name, "defaultVariantName")}: ${t("variantDeliveryNone")}`;
-          if (!variant.deliveryAffectsProfit) return `${normalizeLegacyLabel(variant.name, "defaultVariantName")}: ${t("deliverySeparateInfo")}`;
-          return `${normalizeLegacyLabel(variant.name, "defaultVariantName")}: ${t("metricDeliveryCost")} ${formatMoney(variant.deliveryCostApplied, state.project.currencyCode, state.locale)}`;
-        }).join(" | ")
-        : t("variantDeliveryNone")}</li>
+      <li>${escapeHTML(t("metricMaterialsCost"))}: ${escapeHTML(formatMoney(metrics.materialsCost, state.project.currencyCode, state.locale))}</li>
+      <li>${escapeHTML(t("metricLaborCost"))}: ${escapeHTML(formatMoney(metrics.laborCost, state.project.currencyCode, state.locale))}</li>
+      <li>${escapeHTML(t("metricEnergyCost"))}: ${escapeHTML(formatMoney(metrics.energyCost, state.project.currencyCode, state.locale))}</li>
+      <li>${escapeHTML(t("metricFixedShare"))}: ${escapeHTML(formatMoney(metrics.fixedPerUnit, state.project.currencyCode, state.locale))}</li>
+      <li>${escapeHTML(t("metricVariableCost"))}: ${escapeHTML(formatMoney(metrics.variableCostPerUnit, state.project.currencyCode, state.locale))}</li>
+      <li>${escapeHTML(t("deliveryLabel"))}: ${escapeHTML(metrics.variantMetrics.some((variant) => variant.hasDelivery)
+      ? metrics.variantMetrics.map((variant) => {
+        if (!variant.hasDelivery) return `${normalizeLegacyLabel(variant.name, "defaultVariantName")}: ${t("variantDeliveryNone")}`;
+        if (!variant.deliveryAffectsProfit) return `${normalizeLegacyLabel(variant.name, "defaultVariantName")}: ${t("deliverySeparateInfo")}`;
+        return `${normalizeLegacyLabel(variant.name, "defaultVariantName")}: ${formatMoney(variant.deliveryCostApplied, state.project.currencyCode, state.locale)}`;
+      }).join(" | ")
+      : "-")}</li>
     </ul>
+    <p class="muted" style="margin-top:8px">${escapeHTML(t("variableCostComponents"))}</p>
   `;
 
     trackEvent("result_displayed", getLangCurrencyContext());

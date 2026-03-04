@@ -1,5 +1,6 @@
 import { buildProductMetrics, calculateMaterialBaseUnitCost } from "../engine/pricingEngine.js";
 import { formatMoney, formatNumber } from "../utils/format.js";
+import { escapeHTML } from "../utils/security.js";
 
 function downloadBlob(content, fileName, mimeType) {
   const blob = new Blob([content], { type: mimeType });
@@ -188,36 +189,36 @@ export async function exportPdf({ project, product, metrics, materialsLibrary, l
 
   const recipeRows = metrics.recipeBreakdown.map((item) => {
     const materialLabel = item.materialName === "Unknown" ? t("unknownMaterial") : item.materialName;
-    return `<tr><td style=\"border:1px solid #ddd; padding:6px;\">${materialLabel}</td><td style=\"border:1px solid #ddd; padding:6px;\">${formatNumber(item.qtyPerUnit, locale, 3)}</td><td style=\"border:1px solid #ddd; padding:6px;\">${formatMoney(item.componentCost, project.currencyCode, locale)}</td></tr>`;
+    return `<tr><td style="border:1px solid #ddd; padding:6px;">${escapeHTML(materialLabel)}</td><td style="border:1px solid #ddd; padding:6px;">${escapeHTML(formatNumber(item.qtyPerUnit, locale, 3))}</td><td style="border:1px solid #ddd; padding:6px;">${escapeHTML(formatMoney(item.componentCost, project.currencyCode, locale))}</td></tr>`;
   }).join("");
 
   const variantRows = metrics.variantMetrics.map((variant) => {
     const deliveryInfo = variant.hasDelivery
-      ? `${getDeliveryModeLabel(variant.deliveryPricingMode, t)} / ${getDeliveryBasisLabel(variant.deliveryCostBasis, t)} / ${formatMoney(variant.deliveryCost, project.currencyCode, locale)}`
-      : t("variantDeliveryNone");
-    return `<tr><td style=\"border:1px solid #ddd; padding:6px;\">${variant.name}</td><td style=\"border:1px solid #ddd; padding:6px;\">${formatMoney(variant.variantUnitCost, project.currencyCode, locale)}</td><td style=\"border:1px solid #ddd; padding:6px;\">${formatMoney(variant.suggestedPriceVariant, project.currencyCode, locale)}</td><td style=\"border:1px solid #ddd; padding:6px;\">${Number.isFinite(variant.breakEvenUnitsVariant) ? formatNumber(variant.breakEvenUnitsVariant, locale, 2) : t("breakEvenImpossible")}</td><td style=\"border:1px solid #ddd; padding:6px;\">${deliveryInfo}</td></tr>`;
+      ? `${escapeHTML(getDeliveryModeLabel(variant.deliveryPricingMode, t))} / ${escapeHTML(getDeliveryBasisLabel(variant.deliveryCostBasis, t))} / ${escapeHTML(formatMoney(variant.deliveryCost, project.currencyCode, locale))}`
+      : escapeHTML(t("variantDeliveryNone"));
+    return `<tr><td style="border:1px solid #ddd; padding:6px;">${escapeHTML(variant.name)}</td><td style="border:1px solid #ddd; padding:6px;">${escapeHTML(formatMoney(variant.variantUnitCost, project.currencyCode, locale))}</td><td style="border:1px solid #ddd; padding:6px;">${escapeHTML(formatMoney(variant.suggestedPriceVariant, project.currencyCode, locale))}</td><td style="border:1px solid #ddd; padding:6px;">${escapeHTML(Number.isFinite(variant.breakEvenUnitsVariant) ? formatNumber(variant.breakEvenUnitsVariant, locale, 2) : t("breakEvenImpossible"))}</td><td style="border:1px solid #ddd; padding:6px;">${deliveryInfo}</td></tr>`;
   }).join("");
 
   wrapper.innerHTML = `
-    <h1 style="margin:0 0 8px;">${t("pdfTitle")}</h1>
-    <p style="margin:0 0 14px;">${product.name}</p>
+    <h1 style="margin:0 0 8px;">${escapeHTML(t("pdfTitle"))}</h1>
+    <p style="margin:0 0 14px;">${escapeHTML(product.name)}</p>
     <table style="width:100%; border-collapse:collapse; margin-bottom: 16px;">
       <tbody>
-        <tr><td style="border:1px solid #ddd; padding:8px;">${t("metricTrueUnitCost")}</td><td style="border:1px solid #ddd; padding:8px;">${formatMoney(metrics.trueUnitCost, project.currencyCode, locale)}</td></tr>
-        <tr><td style="border:1px solid #ddd; padding:8px;">${t("metricMinimumAcceptablePrice")}</td><td style="border:1px solid #ddd; padding:8px;">${formatMoney(metrics.minimumAcceptablePrice, project.currencyCode, locale)}</td></tr>
-        <tr><td style="border:1px solid #ddd; padding:8px;">${t("metricSuggestedPrice")}</td><td style="border:1px solid #ddd; padding:8px;">${formatMoney(metrics.suggestedPrice, project.currencyCode, locale)}</td></tr>
+        <tr><td style="border:1px solid #ddd; padding:8px;">${escapeHTML(t("metricTrueUnitCost"))}</td><td style="border:1px solid #ddd; padding:8px;">${escapeHTML(formatMoney(metrics.trueUnitCost, project.currencyCode, locale))}</td></tr>
+        <tr><td style="border:1px solid #ddd; padding:8px;">${escapeHTML(t("metricMinimumAcceptablePrice"))}</td><td style="border:1px solid #ddd; padding:8px;">${escapeHTML(formatMoney(metrics.minimumAcceptablePrice, project.currencyCode, locale))}</td></tr>
+        <tr><td style="border:1px solid #ddd; padding:8px;">${escapeHTML(t("metricSuggestedPrice"))}</td><td style="border:1px solid #ddd; padding:8px;">${escapeHTML(formatMoney(metrics.suggestedPrice, project.currencyCode, locale))}</td></tr>
       </tbody>
     </table>
 
-    <h3 style="margin: 10px 0 6px;">${t("pdfRecipeTitle")}</h3>
+    <h3 style="margin: 10px 0 6px;">${escapeHTML(t("pdfRecipeTitle"))}</h3>
     <table style="width:100%; border-collapse:collapse; margin-bottom: 16px;">
-      <thead><tr><th style="border:1px solid #ddd; padding:6px;">${t("pdfRecipeMaterial")}</th><th style="border:1px solid #ddd; padding:6px;">${t("pdfRecipeQty")}</th><th style="border:1px solid #ddd; padding:6px;">${t("pdfRecipeCost")}</th></tr></thead>
+      <thead><tr><th style="border:1px solid #ddd; padding:6px;">${escapeHTML(t("pdfRecipeMaterial"))}</th><th style="border:1px solid #ddd; padding:6px;">${escapeHTML(t("pdfRecipeQty"))}</th><th style="border:1px solid #ddd; padding:6px;">${escapeHTML(t("pdfRecipeCost"))}</th></tr></thead>
       <tbody>${recipeRows}</tbody>
     </table>
 
-    <h3 style="margin: 10px 0 6px;">${t("pdfVariantsTitle")}</h3>
+    <h3 style="margin: 10px 0 6px;">${escapeHTML(t("pdfVariantsTitle"))}</h3>
     <table style="width:100%; border-collapse:collapse;">
-      <thead><tr><th style="border:1px solid #ddd; padding:6px;">${t("pdfVariantName")}</th><th style="border:1px solid #ddd; padding:6px;">${t("pdfVariantCost")}</th><th style="border:1px solid #ddd; padding:6px;">${t("pdfVariantSuggested")}</th><th style="border:1px solid #ddd; padding:6px;">${t("pdfVariantBreakEven")}</th><th style="border:1px solid #ddd; padding:6px;">${t("deliveryLabel")}</th></tr></thead>
+      <thead><tr><th style="border:1px solid #ddd; padding:6px;">${escapeHTML(t("pdfVariantName"))}</th><th style="border:1px solid #ddd; padding:6px;">${escapeHTML(t("pdfVariantCost"))}</th><th style="border:1px solid #ddd; padding:6px;">${escapeHTML(t("pdfVariantSuggested"))}</th><th style="border:1px solid #ddd; padding:6px;">${escapeHTML(t("pdfVariantBreakEven"))}</th><th style="border:1px solid #ddd; padding:6px;">${escapeHTML(t("deliveryLabel"))}</th></tr></thead>
       <tbody>${variantRows}</tbody>
     </table>
   `;

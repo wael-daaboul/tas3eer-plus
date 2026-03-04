@@ -5,6 +5,7 @@ const COOLDOWN_SECONDS = 15;
 const RATE_LIMIT_COUNT = 3;
 const RATE_LIMIT_WINDOW_MS = 10 * 60 * 1000;
 const RATE_LIMIT_KEY = "pricingplus_login_send_timestamps";
+const PENALTY_KEY = "pricingplus_login_penalty";
 
 const copy = {
   ar: {
@@ -63,7 +64,7 @@ function getStoredTimestamps() {
     const raw = localStorage.getItem(RATE_LIMIT_KEY);
     const arr = JSON.parse(raw || "[]");
     if (!Array.isArray(arr)) return [];
-    return arr.filter((n) => Number.isFinite(n));
+    return arr.filter((n) => Number.isFinite(n) && n > 0 && n <= Date.now());
   } catch {
     return [];
   }
@@ -121,12 +122,22 @@ document.addEventListener("DOMContentLoaded", async () => {
     const validTimestamps = pruneOldTimestamps(getStoredTimestamps());
     writeStoredTimestamps(validTimestamps);
 
-    if (validTimestamps.length < RATE_LIMIT_COUNT) {
+    let penaltyMs = 0;
+    try {
+      const p = Number(localStorage.getItem(PENALTY_KEY));
+      if (Number.isFinite(p) && p > Date.now()) {
+        penaltyMs = p - Date.now();
+      }
+    } catch { }
+
+    if (validTimestamps.length < RATE_LIMIT_COUNT && penaltyMs <= 0) {
       return { blocked: false, remainingMs: 0 };
     }
 
-    const oldest = validTimestamps[0];
-    const remainingMs = Math.max(0, RATE_LIMIT_WINDOW_MS - (Date.now() - oldest));
+    const oldest = validTimestamps[0] || Date.now();
+    const windowRemaining = Math.max(0, RATE_LIMIT_WINDOW_MS - (Date.now() - oldest));
+    const remainingMs = Math.max(windowRemaining, penaltyMs);
+
     return { blocked: remainingMs > 0, remainingMs };
   }
 
@@ -209,6 +220,14 @@ document.addEventListener("DOMContentLoaded", async () => {
     const next = pruneOldTimestamps(getStoredTimestamps());
     next.push(Date.now());
     writeStoredTimestamps(next);
+
+    // Exponential backoff context + jitter
+    if (next.length >= RATE_LIMIT_COUNT) {
+      const basePenalty = 15 * 60 * 1000; // 15 mins
+      const jitter = Math.floor(Math.random() * 60000); // Up to 1 min jitter
+      const penaltyUntil = Date.now() + basePenalty + jitter;
+      localStorage.setItem(PENALTY_KEY, penaltyUntil.toString());
+    }
   }
 
   async function sendMagicLink(email) {

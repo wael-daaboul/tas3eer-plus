@@ -1,5 +1,6 @@
 <!doctype html>
 <html lang="en" dir="ltr">
+
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -27,7 +28,8 @@
     })();
   </script>
   <title>تسعير+</title>
-  <meta name="description" content="تسعير+ أداة عربية بسيطة لحساب تكلفة المنتج والسعر المناسب ونقطة التعادل للمشاريع الصغيرة." />
+  <meta name="description"
+    content="تسعير+ أداة عربية بسيطة لحساب تكلفة المنتج والسعر المناسب ونقطة التعادل للمشاريع الصغيرة." />
   <meta property="og:title" content="تسعير+ | الأداة" />
   <meta property="og:description" content="احسب التكلفة الحقيقية والسعر الأدنى ونقطة التعادل بسرعة." />
   <script defer src="../site/analytics.js"></script>
@@ -35,19 +37,14 @@
   <link rel="stylesheet" href="../styles.css" />
   <script defer src="../site/site.js"></script>
 </head>
+
 <body>
   <header class="header compact">
     <div class="container header-inner">
       <a href="/" class="brand" aria-label="Pricing+ Home">
-  <img
-    id="brandLogo" width="180" height="28"
-    class="brand-logo"
-    src="/assets/brand/logo-en.svg"
-    alt="Pricing+"
-    loading="eager"
-    decoding="async"
-  />
-</a>
+        <img id="brandLogo" width="180" height="28" class="brand-logo" src="/assets/brand/logo-en.svg" alt="Pricing+"
+          loading="eager" decoding="async" />
+      </a>
       <nav id="siteNav" class="nav" aria-label="التنقل الرئيسي">
         <a href="/index.html" id="siteNavHome" data-i18n="navHome">الرئيسية</a>
         <a href="/app/" id="siteNavApp" data-i18n="navApp">الأداة</a>
@@ -56,7 +53,13 @@
         <a href="/support/" id="siteNavSupport" data-i18n="navSupport">دعم المشروع</a>
         <a href="/about/" id="siteNavAbout" data-i18n="navAbout">من نحن</a>
       </nav>
-      <button class="nav-toggle" aria-controls="siteNav" aria-expanded="false" aria-label="Menu" type="button"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg></button>
+      <button class="nav-toggle" aria-controls="siteNav" aria-expanded="false" aria-label="Menu" type="button"><svg
+          width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round">
+          <line x1="3" y1="12" x2="21" y2="12"></line>
+          <line x1="3" y1="6" x2="21" y2="6"></line>
+          <line x1="3" y1="18" x2="21" y2="18"></line>
+        </svg></button>
       <div class="lang-switch" aria-label="تبديل اللغة">
         <button class="lang-btn" data-lang="ar" type="button">AR</button>
         <button class="lang-btn" data-lang="en" type="button">EN</button>
@@ -87,7 +90,8 @@
         <button id="exportPdfBtn" type="button"></button>
         <section id="authSyncPanel" class="account-chip-wrap hidden" aria-live="polite">
           <a id="authSignInBtn" class="btn btn-secondary account-signin-btn" href="/login/">Sign in (optional)</a>
-          <button id="accountChipBtn" type="button" class="account-chip hidden" aria-expanded="false" aria-controls="accountDropdown">
+          <button id="accountChipBtn" type="button" class="account-chip hidden" aria-expanded="false"
+            aria-controls="accountDropdown">
             <span class="account-chip-icon">👤</span>
             <span id="authUserEmailShort" class="account-chip-email"></span>
             <span aria-hidden="true">▾</span>
@@ -99,7 +103,8 @@
             </div>
             <div class="account-actions">
               <button id="syncNowBtn" type="button" class="btn btn-secondary" role="menuitem">Sync now</button>
-              <button id="restoreCloudBtn" type="button" class="btn btn-secondary" role="menuitem">Restore from cloud</button>
+              <button id="restoreCloudBtn" type="button" class="btn btn-secondary" role="menuitem">Restore from
+                cloud</button>
               <button id="authSignOutBtn" type="button" class="btn btn-secondary" role="menuitem">Sign out</button>
             </div>
           </div>
@@ -113,7 +118,8 @@
     </section>
 
     <section id="appGuideBox" class="surface-muted app-guide-box" role="note">
-      <p id="appGuideText" class="muted">أدخل تكلفة المواد، وقتك، والمصاريف الثابتة — وسنحسب لك السعر الأدنى والربح المقترح.</p>
+      <p id="appGuideText" class="muted">أدخل تكلفة المواد، وقتك، والمصاريف الثابتة — وسنحسب لك السعر الأدنى والربح
+        المقترح.</p>
       <button id="appGuideDismiss" type="button" class="app-guide-dismiss" aria-label="إغلاق">×</button>
     </section>
 
@@ -222,7 +228,8 @@
       <section id="advancedSettingsPanel" class="list-block hidden">
         <div class="field">
           <div class="inline-group">
-            <label><input type="radio" name="pricingMode" value="markup" checked /> <span id="pricingModeMarkup"></span></label>
+            <label><input type="radio" name="pricingMode" value="markup" checked /> <span
+                id="pricingModeMarkup"></span></label>
             <label><input type="radio" name="pricingMode" value="margin" /> <span id="pricingModeMargin"></span></label>
           </div>
           <small id="pricingModeAdvancedHelp" class="muted"></small>
@@ -450,8 +457,13 @@
     <p id="feedback" class="feedback" aria-live="polite"></p>
   </main>
 
-  <script defer src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-  <script defer src="https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"
+    integrity="sha384-vtjasyidUo0kW94K5MXDXntzOJpQgBKXmE7e2Ga4LG0skTTLeBi97eFAXsqewJjw"
+    crossorigin="anonymous"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js"
+    integrity="sha384-Yv5O+t3uE3hunW8uyrbpPW3iw6/5/Y7HitWJBLgqfMoA36NogMmy+8wWZMpn3HWc"
+    crossorigin="anonymous"></script>
   <script type="module" src="../src/main.js"></script>
 </body>
+
 </html>
