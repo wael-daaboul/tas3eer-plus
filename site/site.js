@@ -452,7 +452,7 @@
   function bindMobileNav() {
     const navToggle = document.querySelector(".nav-toggle");
     const siteNav = document.getElementById("siteNav");
-    
+
     if (!navToggle || !siteNav) return;
 
     function closeNav() {
