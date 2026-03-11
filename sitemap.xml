@@ -1,11 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <url><loc>/</loc></url>
-  <url><loc>/app/</loc></url>
-  <url><loc>/learn/</loc></url>
-  <url><loc>/how-it-works/</loc></url>
-  <url><loc>/support/</loc></url>
-  <url><loc>/about/</loc></url>
-  <url><loc>/privacy/</loc></url>
-  <url><loc>/terms/</loc></url>
+  <url><loc>https://pricingplus.app/</loc></url>
+  <url><loc>https://pricingplus.app/app/</loc></url>
+  <url><loc>https://pricingplus.app/learn/</loc></url>
+  <url><loc>https://pricingplus.app/how-it-works/</loc></url>
+  <url><loc>https://pricingplus.app/support/</loc></url>
+  <url><loc>https://pricingplus.app/about/</loc></url>
+  <url><loc>https://pricingplus.app/privacy/</loc></url>
+  <url><loc>https://pricingplus.app/terms/</loc></url>
+  <url><loc>https://pricingplus.app/learn/common-mistakes.html</loc></url>
+  <url><loc>https://pricingplus.app/learn/basics.html</loc></url>
+  <url><loc>https://pricingplus.app/learn/examples.html</loc></url>
+  <url><loc>https://pricingplus.app/learn/what-are-fixed-costs.html</loc></url>
 </urlset>

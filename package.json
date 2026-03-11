@@ -5,6 +5,11 @@
   "type": "module",
   "scripts": {
     "start": "python3 -m http.server 5173",
-    "test": "node --test tests/*.test.mjs"
+    "test": "node --test tests/*.test.mjs",
+    "build:articles": "node scripts/build-articles.js"
+  },
+  "dependencies": {
+    "gray-matter": "^4.0.3",
+    "marked": "^17.0.4"
   }
 }
