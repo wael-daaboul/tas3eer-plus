@@ -586,8 +586,14 @@ body {
 .about-card-icon {
   width: 28px;
   height: 28px;
+  min-width: 28px;
+  min-height: 28px;
+  max-width: 28px;
+  max-height: 28px;
   margin-bottom: 1.25rem;
   color: var(--pp-text);
+  flex-shrink: 0;
+  display: block;
 }
 
 .about-card-icon-blue {
@@ -658,7 +664,13 @@ body {
 .about-grid-icon {
   width: 28px;
   height: 28px;
+  min-width: 28px;
+  min-height: 28px;
+  max-width: 28px;
+  max-height: 28px;
   color: var(--pp-muted);
+  flex-shrink: 0;
+  display: block;
 }
 
 .about-behind {
