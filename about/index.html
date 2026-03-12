@@ -42,11 +42,217 @@
           data-lang="en" type="button">EN</button></div>
     </div>
   </header>
-  <main class="container page-main">
-    <section class="hero card">
-      <h1 data-i18n="aboutTitle">من نحن</h1>
-      <p data-i18n="aboutBody">أنشأنا تسعير+ لأن كثيراً من المشاريع الصغيرة تبيع بدون صورة واضحة للتكلفة الحقيقية. هدفنا
-        أن نجعل التسعير مفهوماً وبسيطاً ومتاحاً للجميع.</p>
+  <main class="page-main page-main-full">
+
+    <!-- 1 HERO -->
+    <section class="about-hero">
+      <div class="container about-container">
+        <h1 data-i18n="aboutHeroTitle">نساعد المشاريع الصغيرة على فهم التكلفة الحقيقية لمنتجاتها</h1>
+        <p data-i18n="aboutHeroSubtitle">أنشأنا تسعير+ لأن الكثير من المشاريع الصغيرة تبيع منتجاتها دون صورة واضحة
+          للتكلفة الكاملة. هدفنا هو جعل التسعير مفهوماً، بسيطاً، ومتاحاً للجميع.</p>
+        <div class="actions-row" style="justify-content: center;">
+          <a href="/app/" class="btn btn-primary" data-i18n="aboutHeroBtn">ابدأ استخدام الأداة</a>
+        </div>
+      </div>
+    </section>
+
+    <!-- 2 PROBLEM -->
+    <section class="about-section bg-soft">
+      <div class="container about-container">
+        <h2 data-i18n="aboutProbTitle">المشكلة التي نراها كثيرا</h2>
+        <div class="about-cards">
+          <div class="about-card">
+            <svg class="about-card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+              <line x1="9" y1="9" x2="15" y2="9"></line>
+              <line x1="9" y1="15" x2="15" y2="15"></line>
+            </svg>
+            <h3 data-i18n="aboutProb1">حساب تكلفة المواد فقط</h3>
+          </div>
+          <div class="about-card">
+            <svg class="about-card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"></circle>
+              <polyline points="12 6 12 12 16 14"></polyline>
+            </svg>
+            <h3 data-i18n="aboutProb2">تجاهل تكلفة الوقت</h3>
+          </div>
+          <div class="about-card">
+            <svg class="about-card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <path
+                d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z">
+              </path>
+              <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+              <line x1="12" y1="22.08" x2="12" y2="12"></line>
+            </svg>
+            <h3 data-i18n="aboutProb3">تجاهل المصاريف غير المباشرة</h3>
+          </div>
+          <div class="about-card">
+            <svg class="about-card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <line x1="12" y1="1" x2="12" y2="23"></line>
+              <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+            </svg>
+            <h3 data-i18n="aboutProb4">عدم معرفة نقطة التعادل</h3>
+          </div>
+        </div>
+        <p style="text-align: center; margin-top: 2rem; color: var(--muted);" data-i18n="aboutProbFoot">لهذا تبدو
+          الأرباح جيدة في الظاهر… لكنها ليست دائما كذلك.</p>
+      </div>
+    </section>
+
+    <!-- 3 SOLUTION -->
+    <section class="about-section">
+      <div class="container about-container">
+        <h2 data-i18n="aboutSolTitle">لهذا السبب أنشأنا تسعير+</h2>
+        <div class="about-cards">
+          <div class="about-card">
+            <svg class="about-card-icon about-card-icon-blue" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+            <h3 data-i18n="aboutSol1Title">التكلفة الحقيقية للمنتج</h3>
+            <p data-i18n="aboutSol1Desc">حساب التكلفة الكاملة للوحدة بشكل واضح.</p>
+          </div>
+          <div class="about-card">
+            <svg class="about-card-icon about-card-icon-blue" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+              <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+            </svg>
+            <h3 data-i18n="aboutSol2Title">السعر الأدنى المقبول</h3>
+            <p data-i18n="aboutSol2Desc">معرفة أقل سعر يمكن البيع به دون خسارة.</p>
+          </div>
+          <div class="about-card">
+            <svg class="about-card-icon about-card-icon-blue" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+            </svg>
+            <h3 data-i18n="aboutSol3Title">السعر المقترح</h3>
+            <p data-i18n="aboutSol3Desc">تحديد سعر بيع يحقق الربح المطلوب.</p>
+          </div>
+          <div class="about-card">
+            <svg class="about-card-icon about-card-icon-blue" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 3v18h18"></path>
+              <path d="M18.7 8l-5.1 5.2-2.8-2.7L7 14.3"></path>
+            </svg>
+            <h3 data-i18n="aboutSol4Title">نقطة التعادل</h3>
+            <p data-i18n="aboutSol4Desc">معرفة متى يبدأ المشروع بتحقيق الربح.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 4 PHILOSOPHY -->
+    <section class="about-philosophy-section">
+      <div class="container about-container">
+        <div class="about-philosophy">
+          <h2 data-i18n="aboutPhilTitle">مشروع مجاني للجميع</h2>
+          <p style="white-space: pre-line; text-align: center; line-height: 1.8;" data-i18n="aboutPhilBody">
+            نؤمن أن الوضوح المالي يجب أن يكون متاحًا لكل صاحب مشروع صغير.
+            لهذا السبب تم تصميم تسعير+ كأداة مجانية بالكامل.
+            لا يوجد اشتراك. لا توجد ميزات مدفوعة. ولا يوجد جدار دفع.
+            الجميع يحصل على نفس الأداة.
+            وإذا وجد المستخدم فيها فائدة، يمكنه دعم استمرار المشروع بشكل اختياري.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 5 AUDIENCE -->
+    <section class="about-section">
+      <div class="container about-container">
+        <h2 data-i18n="aboutAudTitle">صُمم للمشاريع الصغيرة</h2>
+        <div class="about-grid">
+          <div class="about-grid-item">
+            <svg class="about-grid-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 2a10 10 0 1 0 10 10 4 4 0 0 1-5-5 4 4 0 0 1-5-5"></path>
+              <path d="M8.5 8.5v.01"></path>
+              <path d="M16 15.5v.01"></path>
+              <path d="M12 12v.01"></path>
+              <path d="M11 17v.01"></path>
+              <path d="M7 14v.01"></path>
+            </svg>
+            <span data-i18n="aboutAud1">حلويات منزلية</span>
+          </div>
+          <div class="about-grid-item">
+            <svg class="about-grid-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="18" r="4"></circle>
+              <path d="M12 14c0-3-2-6-2-6s2 1 2 4c0-3 2-6 2-6s-2 1-2 4"></path>
+            </svg>
+            <span data-i18n="aboutAud2">شموع</span>
+          </div>
+          <div class="about-grid-item">
+            <svg class="about-grid-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="6" r="4"></circle>
+              <path d="M12 10v12"></path>
+              <path d="M10 22h4"></path>
+              <path d="M6 14h12"></path>
+            </svg>
+            <span data-i18n="aboutAud3">منتجات يدوية</span>
+          </div>
+          <div class="about-grid-item">
+            <svg class="about-grid-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <path
+                d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z">
+              </path>
+              <path d="M12 22V12"></path>
+              <path d="M12 12L3.5 7.5"></path>
+              <path d="M12 12l8.5-4.5"></path>
+            </svg>
+            <span data-i18n="aboutAud4">عطور</span>
+          </div>
+          <div class="about-grid-item">
+            <svg class="about-grid-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect>
+              <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path>
+              <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line>
+            </svg>
+            <span data-i18n="aboutAud5">متاجر إنستغرام</span>
+          </div>
+          <div class="about-grid-item">
+            <svg class="about-grid-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+              <polyline points="9 22 9 12 15 12 15 22"></polyline>
+            </svg>
+            <span data-i18n="aboutAud6">أعمال منزلية</span>
+          </div>
+        </div>
+        <p style="text-align: center; color: var(--muted);" data-i18n="aboutAudFoot">لا تحتاج إلى خبرة محاسبية. فقط أدخل
+          الأرقام… وستحصل على صورة أوضح لعملك.</p>
+      </div>
+    </section>
+
+    <!-- 6 BEHIND -->
+    <section class="about-section bg-soft">
+      <div class="container about-container">
+        <h2 data-i18n="aboutBehindTitle">خلف المشروع</h2>
+        <div class="about-behind">
+          <p data-i18n="aboutBehindBody">
+            تم إنشاء تسعير+ كمبادرة مستقلة بواسطة وائل دعبول. بدأت الفكرة من ملاحظة مشكلة تتكرر مع المشاريع الصغيرة:
+            التسعير يتم غالبًا دون فهم واضح للتكلفة الحقيقية. لذلك تم بناء تسعير+ كأداة بسيطة تساعد أصحاب المشاريع
+            الصغيرة على فهم أرقامهم واتخاذ قرارات أفضل. المشروع يتم تطويره باستمرار مع الحفاظ على هدفه الأساسي: البساطة،
+            الوضوح، وإتاحة الأداة للجميع.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- END -->
+    <section class="about-cta">
+      <div class="container about-container">
+        <div class="about-quote" data-i18n="aboutEndQuote">عندما تصبح الأرقام واضحة… يصبح اتخاذ القرار أسهل.</div>
+        <a href="/app/" class="btn btn-primary" data-i18n="aboutEndBtn">ابدأ استخدام تسعير+</a>
+      </div>
     </section>
   </main>
   <footer class="footer">
