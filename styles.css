@@ -71,49 +71,7 @@ body {
   margin: var(--space-5) auto var(--space-6);
 }
 
-.brand {
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  text-decoration: none;
-}
 
-.brand-logo {
-  height: 28px !important;
-  width: auto !important;
-  max-width: 180px !important;
-  max-height: 28px !important;
-  display: block !important;
-  object-fit: contain;
-}
-
-@media (max-width: 640px) {
-  .brand-logo {
-    height: 24px !important;
-    max-height: 24px !important;
-    max-width: 160px !important;
-  }
-}
-
-.brand img,
-.brand svg {
-  width: auto !important;
-  height: 100% !important;
-  max-width: 100% !important;
-}
-
-@supports (-webkit-touch-callout: none) {
-  .brand-logo {
-    width: 180px !important;
-    object-fit: contain;
-  }
-
-  @media (max-width: 640px) {
-    .brand-logo {
-      width: 160px !important;
-    }
-  }
-}
 
 .surface,
 .card {

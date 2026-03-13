@@ -62,38 +62,24 @@ body {
 
 .brand-logo {
   height: 28px !important;
-  width: auto !important;
-  max-width: 180px !important;
   max-height: 28px !important;
-  display: block !important;
+  width: 180px !important;
+  max-width: 180px !important;
+  display: block;
   object-fit: contain;
+  flex-shrink: 0;
 }
+
+html[lang="ar"] .logo-ar { display: block !important; }
+html[lang="ar"] .logo-en { display: none !important; }
+
+html[lang="en"] .logo-en { display: block !important; }
+html[lang="en"] .logo-ar { display: none !important; }
 
 @media (max-width: 640px) {
   .brand-logo {
     height: 24px !important;
-    max-height: 24px !important;
-    max-width: 160px !important;
-  }
-}
-
-.brand img,
-.brand svg {
-  width: auto !important;
-  height: 100% !important;
-  max-width: 100% !important;
-}
-
-@supports (-webkit-touch-callout: none) {
-  .brand-logo {
-    width: 180px !important;
-    object-fit: contain;
-  }
-
-  @media (max-width: 640px) {
-    .brand-logo {
-      width: 160px !important;
-    }
+    width: 160px !important;
   }
 }
 
@@ -131,6 +117,7 @@ body {
   background: transparent;
   padding: 0.35rem 0.6rem;
   border-radius: 0;
+  min-height: 0;
 }
 
 .lang-btn.active {
@@ -257,6 +244,12 @@ body {
   margin: 0 0 0.65rem;
   font-size: 1rem;
   color: var(--muted);
+}
+
+.quick-example-block {
+  background-color: var(--pp-bg-soft);
+  border: 1px solid var(--pp-border);
+  min-height: 180px;
 }
 
 .quick-example-block h2 {
