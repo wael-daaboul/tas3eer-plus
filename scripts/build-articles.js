@@ -61,7 +61,11 @@ async function build() {
         const { data, content } = matter(fileContent);
 
         const slug = data.slug || file.replace('.md', '');
-        let htmlContent = marked.parse(content);
+        
+        // Remove the first H1 title from content if it exists to avoid double rendering
+        // as the template already includes <h1>{{TITLE}}</h1>
+        const cleanContent = content.replace(/^#\s+.+$/m, '');
+        let htmlContent = marked.parse(cleanContent);
 
         // Step 2: Image SEO Automation
         // Add alt, title, and loading="lazy" if missing or generic
