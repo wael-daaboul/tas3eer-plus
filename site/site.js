@@ -13,8 +13,8 @@
       navAbout: "من نحن",
       footerPrivacy: "سياسة الخصوصية",
       footerTerms: "الشروط",
-      footerContact: "تواصل",
-      footerVersion: "نسخة المشروع v1.0",
+      footerContact: "لديك سؤال؟ تواصل معنا",
+      footerVersion: "نسخة المشروع v1.1",
       homeTitle: "احسب سعر منتجك الحقيقي في 3 خطوات فقط — قبل أن تخسر دون أن تشعر.",
       homeSubtitle: "لا تسجيل. لا اشتراك. مجانية 100%. ابدأ الآن.",
       homeQuickExampleTitle: "مثال سريع",
@@ -180,7 +180,10 @@
       accountBody: "صفحة الحساب ستكون متاحة لاحقاً مع مزامنة البيانات.",
 
       notFoundTitle: "404 - الصفحة غير موجودة",
-      notFoundBody: "الرابط الذي حاولت فتحه غير متاح حالياً."
+      notFoundBody: "الرابط الذي حاولت فتحه غير متاح حالياً.",
+      contactInvitationTitle: "هل واجهت مشكلة في فهم نقطة معينة؟",
+      contactInvitationLink: "راسلنا الآن",
+      fabText: "اسألنا"
     },
     en: {
       brand: "PricingPlus",
@@ -192,8 +195,8 @@
       navAbout: "About",
       footerPrivacy: "Privacy",
       footerTerms: "Terms",
-      footerContact: "Contact",
-      footerVersion: "Project version v1.0",
+      footerContact: "Have a question? Contact us",
+      footerVersion: "Project version v1.1",
       homeTitle: "Calculate your real product price in 3 simple steps — before you lose money without noticing.",
       homeSubtitle: "No signup. No subscription. 100% free. Start now.",
       homeQuickExampleTitle: "Quick Example",
@@ -359,7 +362,10 @@
       accountBody: "Account page will be available later with data sync.",
 
       notFoundTitle: "404 - Page not found",
-      notFoundBody: "The page you requested is not available right now."
+      notFoundBody: "The page you requested is not available right now.",
+      contactInvitationTitle: "Have a question about a specific point?",
+      contactInvitationLink: "Contact us now",
+      fabText: "Ask us"
     }
   };
 

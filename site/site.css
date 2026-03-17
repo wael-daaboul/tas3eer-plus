@@ -713,3 +713,43 @@ html[lang="en"] .logo-ar { display: none !important; }
     padding: 1.5rem;
   }
 }
+
+/* --- Floating Action Button (FAB) --- */
+.fab {
+  position: fixed;
+  bottom: 2rem;
+  inset-inline-end: 2rem;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background-color: var(--pp-blue);
+  color: #fff;
+  padding: 0.75rem 1.25rem;
+  border-radius: 999px;
+  text-decoration: none;
+  font-weight: 700;
+  box-shadow: 0 4px 15px rgba(37, 99, 235, 0.3);
+  transition: transform 0.2s, box-shadow 0.2s;
+  border: 2px solid #fff;
+}
+
+.fab:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 25px rgba(37, 99, 235, 0.4);
+  color: #fff;
+}
+
+.fab-icon {
+  width: 20px;
+  height: 20px;
+}
+
+@media (max-width: 640px) {
+  .fab {
+    bottom: 1.5rem;
+    inset-inline-end: 1.5rem;
+    padding: 0.6rem 1rem;
+    font-size: 0.9rem;
+  }
+}
