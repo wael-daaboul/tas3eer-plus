@@ -6,3 +6,8 @@ tests/
 node_modules/
 *.log
 مفاتيح
+repomix-output.xml
+tas3eer-clean-project.txt
+tas3eer-docs.txt
+tas3eer-ui.txt
+tas3eer-logic.txt

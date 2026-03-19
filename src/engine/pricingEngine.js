@@ -152,7 +152,8 @@ export function buildVariantMetrics({
   variant,
   trueUnitCost,
   variableCostPerUnit,
-  fixedMonthly
+  fixedMonthly,
+  wholesaleDiscountPercent = 0
 }) {
   const unitsPerVariant = Math.max(1, Math.floor(toSafeNumber(variant.unitsPerVariant, 1)));
   const extraPackagingCost = clampNonNegative(variant.extraPackagingCost);
@@ -178,6 +179,7 @@ export function buildVariantMetrics({
 
   const minimumAcceptablePriceVariant = calculateMinimumAcceptablePrice(variantUnitCost, project.safetyMarginPercent);
   const suggestedPriceVariant = calculateSuggestedPrice(variantUnitCost, project.pricingMode, targetPercent);
+  const wholesalePriceVariant = suggestedPriceVariant * (1 - (clampNonNegative(wholesaleDiscountPercent) / 100));
 
   const sellingPriceVariant = clampNonNegative(variant.sellingPriceOverride) > 0
     ? clampNonNegative(variant.sellingPriceOverride)
@@ -207,6 +209,7 @@ export function buildVariantMetrics({
     variableCostVariant,
     minimumAcceptablePriceVariant,
     suggestedPriceVariant,
+    wholesalePriceVariant,
     sellingPriceVariant,
     breakEvenUnitsVariant,
     expectedMonthlySalesVariant: monthlySales,
@@ -214,7 +217,7 @@ export function buildVariantMetrics({
   };
 }
 
-export function buildProductMetrics(project, product, materialsLibrary = [], sellingPriceOverride = null) {
+export function buildProductMetrics(project, product, materialsLibrary = [], sellingPriceOverride = null, wholesaleDiscountPercent = 0) {
   const depreciationMonthly = calculateDepreciationMonthly(project.equipmentDepreciation);
   const fixedMonthly = calculateFixedMonthly(project.monthlyFixedCosts, depreciationMonthly);
   const fixedPerUnit = calculateFixedPerUnit(fixedMonthly, project.expectedMonthlyUnits);
@@ -257,7 +260,8 @@ export function buildProductMetrics(project, product, materialsLibrary = [], sel
     variant,
     trueUnitCost,
     variableCostPerUnit,
-    fixedMonthly
+    fixedMonthly,
+    wholesaleDiscountPercent
   }));
 
   return {
@@ -294,4 +298,15 @@ export function getProfitStatus(metrics) {
   }
 
   return "green";
+}
+
+/**
+ * Calculates the final price including tax.
+ * Formula: FinalPrice = SuggestedPrice * (1 + TaxPercentage / 100)
+ */
+export function calculatePriceWithTax(basePrice, taxRate) {
+  const price = toSafeNumber(basePrice);
+  const rate = toSafeNumber(taxRate);
+  if (rate <= 0) return price;
+  return price * (1 + (rate / 100));
 }

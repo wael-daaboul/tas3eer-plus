@@ -47,7 +47,11 @@ const copy = {
 };
 
 function getLocale() {
-  return localStorage.getItem("pricingplus_locale") === "ar" ? "ar" : "en";
+  const saved =
+    localStorage.getItem("selectedLanguage") ||
+    localStorage.getItem("pricingplus_locale") ||
+    navigator.language;
+  return String(saved).toLowerCase().startsWith("en") ? "en" : "ar";
 }
 
 function t(locale, key, vars = {}) {

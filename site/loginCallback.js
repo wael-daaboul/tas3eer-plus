@@ -1,3 +1,17 @@
+// Global error tracking for resilience
+if (!window.__pricingPlusErrorsBound) {
+  window.__pricingPlusErrorsBound = true;
+  window.addEventListener('unhandledrejection', (event) => {
+    // TODO: Integrate with monitoring service like Sentry
+    console.error("Unhandled Promise Rejection:", event.reason);
+  });
+
+  window.addEventListener('error', (event) => {
+    // TODO: Integrate with monitoring service like Sentry
+    console.error("Global Runtime Error:", event.error || event.message);
+  });
+}
+
 import { getSupabaseClient, hasSupabaseConfig } from "/site/supabaseClient.js";
 
 const copy = {
@@ -18,7 +32,11 @@ const copy = {
 };
 
 function getLocale() {
-  return localStorage.getItem("pricingplus_locale") === "ar" ? "ar" : "en";
+  const saved =
+    localStorage.getItem("selectedLanguage") ||
+    localStorage.getItem("pricingplus_locale") ||
+    navigator.language;
+  return String(saved).toLowerCase().startsWith("en") ? "en" : "ar";
 }
 
 function t(locale, key) {
@@ -74,7 +92,14 @@ document.addEventListener("DOMContentLoaded", async () => {
   const url = new URL(window.location.href);
   const code = url.searchParams.get("code");
   if (code) {
-    await supabase.auth.exchangeCodeForSession(code);
+    try {
+      await supabase.auth.exchangeCodeForSession(code);
+    } catch (error) {
+      console.error("Auth Exchange Error:", error);
+      alert(locale === "ar" ? "الرابط قد انتهت صلاحيته أو غير صالح" : "The link has expired or is invalid.");
+      window.location.replace("/login/");
+      return;
+    }
   }
 
   const session = await waitForSession(supabase);

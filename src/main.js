@@ -1,25 +1,57 @@
+/**
+ * Pricing+ Core - Version 1.5.0 (The Vanilla Milestone)
+ * Final stable version of the Vanilla JavaScript implementation.
+ * Updated: 2026-03-19
+ */
+// Global error tracking for resilience
+if (!window.__pricingPlusErrorsBound) {
+  window.__pricingPlusErrorsBound = true;
+  window.addEventListener('unhandledrejection', (event) => {
+    // TODO: Integrate with monitoring service like Sentry
+    console.error("Unhandled Promise Rejection:", event.reason);
+  });
+
+  window.addEventListener('error', (event) => {
+    // TODO: Integrate with monitoring service like Sentry
+    console.error("Global Runtime Error:", event.error || event.message);
+  });
+}
+
 import {
   buildProductMetrics,
   getProfitStatus,
-  calculateMaterialBaseUnitCost
+  calculateMaterialBaseUnitCost,
+  calculatePriceWithTax
 } from "./engine/pricingEngine.js";
 import {
   applyDocumentLocale,
-  createTranslator
+  createTranslator,
+  getStoredLocale,
+  normalizeLocale,
+  persistLocaleSelection,
+  SELECTED_LANGUAGE_KEY,
+  LOCALE_KEY,
+  t
 } from "./i18n/localization.js";
-import { IndexedDbProvider } from "./storage/indexedDbProvider.js";
+import { LanguageSelector } from "./ui/components/LanguageSelector.js";
+import { showToast } from "./ui/components/Toast.js";
+import { authService } from "./services/authService.js";
+import { dbService } from "./services/dbService.js";
 import { exportCsv, exportXlsx, exportPdf } from "./services/exportService.js";
 import { formatMoney, formatNumber, toNumber } from "./utils/format.js";
 import { uid } from "./utils/id.js";
 import { escapeHTML } from "./utils/security.js";
-import { SUPABASE_URL, SUPABASE_ANON_KEY, getSupabaseClient, hasSupabaseConfig } from "../site/supabaseClient.js";
+import { hasSupabaseConfig } from "../site/supabaseClient.js";
+import { ResultCard } from "./ui/components/ResultCard.js";
+import { ProductItem } from "./ui/components/ProductItem.js";
+import { PricingTable } from "./ui/components/PricingTable.js";
+import { SummarySection } from "./ui/components/SummarySection.js";
+import { ComparisonTable } from "./ui/components/ComparisonTable.js";
+import { CostBreakdown } from "./ui/components/CostBreakdown.js";
+import { MapsTo } from "./ui/viewManager.js";
+import { getState, updateInput, updateSetting, setProducts, setResults } from "./store/stateManager.js";
 
-const storage = new IndexedDbProvider();
-const LOCALE_KEY = "pricingplus_locale";
-const SYNC_PENDING_KEY = "pricingplus_sync_pending";
-const AUTO_SYNC_DEBOUNCE_MS = 3000;
-const AUTO_SYNC_THROTTLE_MS = 30000;
-const APP_VERSION = "1.0";
+const APP_VERSION = "1.5.0";
 
 const FIXED_COST_TEMPLATES = [
   { key: "fixedRent", hintKey: "fixedRentHint" },
@@ -32,42 +64,33 @@ const FIXED_COST_TEMPLATES = [
   { key: "fixedAdminOther", hintKey: "fixedAdminOtherHint" }
 ];
 
-const state = {
-  locale: "en",
-  t: () => "",
-  currencies: [],
-  project: null,
-  materialsLibrary: [],
-  products: [],
-  selectedProductId: null,
-  editingProductId: null,
-  editingMaterialId: null,
-  uiMode: "simple",
-  demoMode: false,
-  supabase: null,
-  authUser: null,
-  authToken: "",
-  analytics: {
-    calculatorStarted: false,
-    laborTimeAdded: false,
-    fixedCostsAdded: false,
-    breakevenViewed: false
-  },
-  sync: {
-    status: "pending",
-    lastSyncAt: "",
-    dirty: false,
-    debounceId: null,
-    throttleId: null,
-    lastSyncRunAt: 0,
-    wrapApplied: false,
-    suspendWrites: false
+let state = getState();
+
+window.getState = getState;
+window.updateInput = updateInput;
+window.updateSetting = updateSetting;
+window.setProducts = setProducts;
+window.setResults = setResults;
+
+window.addEventListener('stateChanged', (event) => {
+  state = event.detail;
+  
+  // Re-render core views if relevant data changes
+  if (state.inputs.project) {
+    renderHourlyRateWarning();
   }
-};
+  
+  if (state.settings.selectedProductId && state.products.length > 0) {
+    renderProductPicker();
+    // Re-render results only if currently visible
+    if (!refs.stepResults.classList.contains("hidden")) {
+      renderResults();
+    }
+  }
+});
 
 function getCanonicalLocale() {
-  const locale = localStorage.getItem(LOCALE_KEY);
-  return locale === "ar" ? "ar" : "en";
+  return getStoredLocale();
 }
 
 function analytics() {
@@ -76,7 +99,7 @@ function analytics() {
 
 function getLangCurrencyContext(extra = {}) {
   return {
-    lang: state.locale === "ar" ? "ar" : "en",
+    lang: state.settings.locale === "ar" ? "ar" : "en",
     currency: state.project?.currencyCode || "USD",
     ...extra
   };
@@ -86,77 +109,10 @@ function trackEvent(name, params = {}) {
   analytics()?.trackEvent(name, params);
 }
 
-function trackError(type, message, extra = {}) {
-  analytics()?.trackError(type, message, extra);
-}
-
-function getAuthCopy(locale) {
-  if (locale === "ar") {
-    return {
-      signInOptional: "تسجيل الدخول (اختياري)",
-      syncStatusLabel: "حالة المزامنة",
-      syncUpToDate: "محدّث",
-      syncPending: "بانتظار المزامنة",
-      syncError: "خطأ",
-      syncInProgress: "جارٍ المزامنة",
-      lastSyncLabel: "آخر مزامنة",
-      lastSyncNever: "لم تتم بعد",
-      syncNow: "مزامنة الآن",
-      restore: "استعادة من السحابة",
-      signOut: "تسجيل الخروج",
-      unavailable: "النسخ السحابي غير مفعّل حالياً.",
-      notSignedIn: "يمكنك متابعة الاستخدام محلياً بدون تسجيل.",
-      syncing: "جارٍ رفع النسخة الاحتياطية...",
-      synced: "تم رفع النسخة الاحتياطية بنجاح.",
-      loadingBackup: "جارٍ تحميل النسخة السحابية...",
-      noBackup: "لا توجد نسخة سحابية محفوظة لهذا الحساب.",
-      restoreConfirm: "سيتم استبدال البيانات المحلية الحالية بنسخة سحابية. هل تريد المتابعة؟",
-      restored: "تمت الاستعادة بنجاح. سيتم تحديث الصفحة.",
-      signOutDone: "تم تسجيل الخروج. بياناتك المحلية كما هي.",
-      authError: "تعذر تنفيذ العملية السحابية حالياً.",
-      demoBlocked: "أوقف وضع التجربة أولاً قبل النسخ السحابي."
-    };
-  }
-
-  return {
-    signInOptional: "Sign in (optional)",
-    syncStatusLabel: "Sync status",
-    syncUpToDate: "Up to date",
-    syncPending: "Pending",
-    syncError: "Error",
-    syncInProgress: "Syncing",
-    lastSyncLabel: "Last sync",
-    lastSyncNever: "Never",
-    syncNow: "Sync now",
-    restore: "Restore from cloud",
-    signOut: "Sign out",
-    unavailable: "Cloud backup is not enabled yet.",
-    notSignedIn: "You can keep using the app locally without login.",
-    syncing: "Uploading backup...",
-    synced: "Backup uploaded successfully.",
-    loadingBackup: "Loading cloud backup...",
-    noBackup: "No cloud backup found for this account.",
-    restoreConfirm: "This will overwrite current local data with cloud backup. Continue?",
-    restored: "Restore complete. Reloading page.",
-    signOutDone: "Signed out. Your local data is unchanged.",
-    authError: "Could not complete cloud operation right now.",
-    demoBlocked: "Exit demo mode before cloud backup."
-  };
-}
-
 function createDefaultProject() {
   return {
-    currencyCode: "USD",
-    localeMode: "auto",
-    dataVersion: 3,
-    hourlyRate: 0,
-    monthlyFixedCosts: FIXED_COST_TEMPLATES.map((item) => ({
-      id: uid("fixed"),
-      name: "",
-      templateKey: item.key,
-      templateHintKey: item.hintKey,
-      amount: 0
-    })),
+    id: uid("project"),
+    monthlyFixedCosts: [{ id: uid("fixed"), name: "", templateKey: "", amount: 0 }],
     equipmentDepreciation: [{ id: uid("equip"), name: "", purchasePrice: 0, lifetimeMonths: 12 }],
     expectedMonthlyUnits: 1,
     expectedMonthlySales: 0,
@@ -166,7 +122,9 @@ function createDefaultProject() {
     hasSales: "no",
     salesUnitsInput: 0,
     salesUndefined: true,
-    uiMode: "simple"
+    uiMode: "simple",
+    taxRate: 0,
+    wholesaleDiscount: 0
   };
 }
 
@@ -340,10 +298,12 @@ function buildDemoSeed(demoKey) {
   return { project, materials: [m1, m2, m3], product };
 }
 
-const refs = {
-  feedback: document.getElementById("feedback"),
-  languageSelect: document.getElementById("languageSelect"),
-  siteLangButtons: [...document.querySelectorAll(".lang-btn")],
+let refs = {};
+
+function initRefs() {
+  refs = {
+    feedback: document.getElementById("feedback"),
+  languageSelectorContainer: document.getElementById("language-selector-container"),
   siteNavHome: document.getElementById("siteNavHome"),
   siteNavApp: document.getElementById("siteNavApp"),
   siteNavLearn: document.getElementById("siteNavLearn"),
@@ -419,6 +379,8 @@ const refs = {
   variantCards: document.getElementById("variantCards"),
   calculationDetails: document.getElementById("calculationDetails"),
   monthlyTable: document.getElementById("monthlyTable"),
+  taxRateInput: document.getElementById("tax-rate-input"),
+  wholesaleDiscountInput: document.getElementById("wholesale-discount-input"),
 
   exportCsvBtn: document.getElementById("exportCsvBtn"),
   exportXlsxBtn: document.getElementById("exportXlsxBtn"),
@@ -444,8 +406,9 @@ const refs = {
   quickStartDemoBtn: document.getElementById("quickStartDemoBtn"),
   deleteDemoBtn: document.getElementById("deleteDemoBtn"),
   hourlyRateZeroWarning: document.getElementById("hourlyRateZeroWarning"),
-  demoSeedSectionTitle: document.getElementById("demoSeedTitle")
-};
+    demoSeedSectionTitle: document.getElementById("demoSeedTitle")
+  };
+}
 
 function setFeedback(message) {
   refs.feedback.textContent = message;
@@ -453,9 +416,10 @@ function setFeedback(message) {
 
 function getFriendlyErrorMessage(error) {
   const code = String(error?.message || error || "");
-  if (code.includes("EXPORT_LIBRARY_MISSING")) return state.t("errorExportLibrary");
-  if (code.includes("LOAD_CURRENCIES_FAILED")) return state.t("errorLoadCurrencies");
-  return state.t("unexpectedError");
+  const t = state.settings.t;
+  if (code.includes("EXPORT_LIBRARY_MISSING")) return t("errorExportLibrary");
+  if (code.includes("LOAD_CURRENCIES_FAILED")) return t("errorLoadCurrencies");
+  return t("unexpectedError");
 }
 
 function validateNonNegative(values) {
@@ -463,14 +427,15 @@ function validateNonNegative(values) {
 }
 
 function getCurrencyDisplay(currency) {
-  const name = state.locale === "ar"
-    ? (currency.name_ar || `${state.t("currencyGenericName")} ${currency.code}`)
+  const isAr = state.settings.locale === "ar";
+  const name = isAr
+    ? (currency.name_ar || `${state.settings.t("currencyGenericName")} ${currency.code}`)
     : (currency.name_en || currency.code);
   return `${name} — ${currency.code}`;
 }
 
 function getMaterialDisplayName(material) {
-  return state.locale === "ar"
+  return state.settings.locale === "ar"
     ? (material.name_ar || material.name_en || material.id)
     : (material.name_en || material.name_ar || material.id);
 }
@@ -485,24 +450,21 @@ function getHasSalesValue() {
   return selected?.value === "no" ? "no" : "yes";
 }
 
-function setSiteLanguageButtons(locale) {
-  refs.siteLangButtons.forEach((btn) => {
-    const isActive = btn.dataset.lang === locale;
-    btn.classList.toggle("active", isActive);
-    btn.setAttribute("aria-pressed", isActive ? "true" : "false");
-  });
-}
 
 function applyUiMode(mode) {
-  state.uiMode = mode === "advanced" ? "advanced" : "simple";
-  document.body.classList.toggle("simple-mode", state.uiMode === "simple");
-  refs.simpleModeBtn.classList.toggle("active", state.uiMode === "simple");
-  refs.advancedModeBtn.classList.toggle("active", state.uiMode === "advanced");
-  refs.advancedSettingsBtn.classList.toggle("hidden", state.uiMode === "simple");
-  refs.equipmentSection.classList.toggle("hidden", state.uiMode === "simple");
-  if (state.uiMode === "simple") {
+  const newMode = mode === "advanced" ? "advanced" : "simple";
+  updateSetting("uiMode", newMode);
+  document.body.classList.toggle("simple-mode", state.settings.uiMode === "simple");
+  refs.simpleModeBtn.classList.toggle("active", state.settings.uiMode === "simple");
+  refs.advancedModeBtn.classList.toggle("active", state.settings.uiMode === "advanced");
+  refs.advancedSettingsBtn.classList.toggle("hidden", state.settings.uiMode === "simple");
+  refs.equipmentSection.classList.toggle("hidden", state.settings.uiMode === "simple");
+  if (state.settings.uiMode === "simple") {
     refs.advancedSettingsPanel.classList.add("hidden");
   }
+  document.querySelectorAll(".advanced-field").forEach((el) => {
+    el.style.display = state.settings.uiMode === "advanced" ? "block" : "none";
+  });
 }
 
 function renderSalesBlocks() {
@@ -519,23 +481,23 @@ function renderHourlyRateWarning() {
 
 function renderDemoDeleteButton() {
   if (!refs.deleteDemoBtn) return;
-  const show = Boolean(state.demoMode);
+  const show = Boolean(state.settings.demoMode);
   refs.deleteDemoBtn.classList.toggle("hidden", !show);
 }
 
 function renderDemoModeBanner() {
   if (!refs.demoModeBanner) return;
-  refs.demoModeBanner.classList.toggle("hidden", !state.demoMode);
+  refs.demoModeBanner.classList.toggle("hidden", !state.settings.demoMode);
 }
 
 function updateDemoModeTexts() {
   if (refs.demoModeTitle) {
-    refs.demoModeTitle.textContent = state.locale === "ar"
+    refs.demoModeTitle.textContent = state.settings.locale === "ar"
       ? "أنت الآن في وضع التجربة"
       : "You are in demo mode";
   }
   if (refs.exitDemoModeBtn) {
-    refs.exitDemoModeBtn.textContent = state.locale === "ar"
+    refs.exitDemoModeBtn.textContent = state.settings.locale === "ar"
       ? "ابدأ مشروعك الخاص"
       : "Start your own project";
   }
@@ -549,17 +511,16 @@ function getCleanAppUrl() {
 }
 
 function exitDemoModeReload() {
-  state.demoMode = false;
+  state.settings.demoMode = false;
   window.location.replace(getCleanAppUrl());
 }
 
 function updateAuthTexts() {
   if (!refs.authSyncPanel) return;
-  const copy = getAuthCopy(state.locale);
-  if (refs.authSignInBtn) refs.authSignInBtn.textContent = copy.signInOptional;
-  if (refs.syncNowBtn) refs.syncNowBtn.textContent = copy.syncNow;
-  if (refs.restoreCloudBtn) refs.restoreCloudBtn.textContent = copy.restore;
-  if (refs.authSignOutBtn) refs.authSignOutBtn.textContent = copy.signOut;
+  if (refs.authSignInBtn) refs.authSignInBtn.textContent = t("signInOptional");
+  if (refs.syncNowBtn) refs.syncNowBtn.textContent = t("syncNow");
+  if (refs.restoreCloudBtn) refs.restoreCloudBtn.textContent = t("restore");
+  if (refs.authSignOutBtn) refs.authSignOutBtn.textContent = t("signOut");
 }
 
 function shortEmail(email) {
@@ -569,43 +530,50 @@ function shortEmail(email) {
   return `${value.slice(0, 21)}...`;
 }
 
-function relativeTime(iso, locale) {
-  if (!iso) return getAuthCopy(locale).lastSyncNever;
+function relativeTime(iso) {
+  if (!iso) return t("lastSyncNever");
   const ts = new Date(iso).getTime();
-  if (!Number.isFinite(ts)) return getAuthCopy(locale).lastSyncNever;
+  if (!Number.isFinite(ts)) return t("lastSyncNever");
   const diffSec = Math.max(0, Math.floor((Date.now() - ts) / 1000));
-  if (diffSec < 60) return locale === "ar" ? "الآن" : "just now";
+  
+  if (diffSec < 60) return t("timeNow");
+  
   const diffMin = Math.floor(diffSec / 60);
-  if (diffMin < 60) return locale === "ar" ? `قبل ${diffMin} دقيقة` : `${diffMin} min ago`;
+  if (diffMin < 60) return t("timeMinAgo").replace("{n}", diffMin);
+  
   const diffHour = Math.floor(diffMin / 60);
-  if (diffHour < 24) return locale === "ar" ? `قبل ${diffHour} ساعة` : `${diffHour} h ago`;
+  if (diffHour < 24) return t("timeHourAgo").replace("{n}", diffHour);
+  
   const diffDay = Math.floor(diffHour / 24);
-  return locale === "ar" ? `قبل ${diffDay} يوم` : `${diffDay} d ago`;
+  return t("timeDayAgo").replace("{n}", diffDay);
 }
 
 function setSyncStatus(status) {
-  state.sync.status = status;
+  state.settings.sync.status = status;
 }
 
 function refreshSyncLines() {
-  const copy = getAuthCopy(state.locale);
-  let statusText = copy.syncPending;
-  if (state.sync.status === "up_to_date") statusText = copy.syncUpToDate;
-  if (state.sync.status === "error") statusText = copy.syncError;
-  if (state.sync.status === "syncing") statusText = copy.syncInProgress;
+  const status = state.settings.sync.status;
+  const labels = {
+    up_to_date: t("syncUpToDate"),
+    pending: t("syncPending"),
+    error: t("syncError"),
+    syncing: t("syncInProgress")
+  };
+  const statusText = labels[status] || labels.pending;
 
   if (refs.syncStatusLine) {
-    refs.syncStatusLine.textContent = `${copy.syncStatusLabel}: ${statusText}`;
+    refs.syncStatusLine.textContent = `${t("syncStatusLabel")}: ${statusText}`;
   }
   if (refs.syncLastLine) {
-    refs.syncLastLine.textContent = `${copy.lastSyncLabel}: ${relativeTime(state.sync.lastSyncAt, state.locale)}`;
+    refs.syncLastLine.textContent = `${t("lastSyncLabel")}: ${relativeTime(state.settings.sync.lastSyncAt)}`;
   }
 }
 
 function renderAuthPanel() {
   if (!refs.authSyncPanel) return;
   const enabled = hasSupabaseConfig();
-  const signedIn = Boolean(state.authUser);
+  const signedIn = Boolean(state.settings.auth.user);
 
   refs.authSyncPanel.classList.toggle("hidden", !enabled);
   if (!enabled) {
@@ -622,52 +590,13 @@ function renderAuthPanel() {
   }
 
   if (refs.authUserEmailShort) {
-    refs.authUserEmailShort.textContent = shortEmail(state.authUser.email);
+    refs.authUserEmailShort.textContent = shortEmail(state.settings.auth.user.email);
   }
   refreshSyncLines();
 }
 
-async function exportLocalData() {
-  const [project, materials, products] = await Promise.all([
-    storage.getProject(),
-    storage.listMaterials(),
-    storage.listProducts()
-  ]);
-  return {
-    _meta: {
-      updatedAt: new Date().toISOString(),
-      source: "pricingplus-local",
-      version: 1,
-      appVersion: APP_VERSION,
-      locale: state.locale
-    },
-    project,
-    materials,
-    products
-  };
-}
-
-async function importLocalData(snapshot) {
-  const project = snapshot?.project ?? null;
-  const materials = Array.isArray(snapshot?.materials) ? snapshot.materials : [];
-  const products = Array.isArray(snapshot?.products) ? snapshot.products : [];
-
-  state.sync.suspendWrites = true;
-  try {
-    await storage.clearAllData();
-    if (project) {
-      await storage.saveProject(project);
-    }
-    for (const material of materials) {
-      await storage.upsertMaterial(material);
-    }
-    for (const product of products) {
-      await storage.upsertProduct(product);
-    }
-  } finally {
-    state.sync.suspendWrites = false;
-  }
-}
+// Data persistence is now handled by dbService.
+// Local storage and cloud sync are isolated from the main Logic.
 
 function readVersionsFromRow(data) {
   if (!data) return [];
@@ -679,216 +608,45 @@ function readVersionsFromRow(data) {
   return [];
 }
 
-async function saveBackupToCloud(snapshot) {
-  if (!state.supabase || !state.authUser) throw new Error("AUTH_REQUIRED");
-  const { data: existingRow, error: loadError } = await state.supabase
-    .from("user_backups")
-    .select("data")
-    .eq("user_id", state.authUser.id)
-    .maybeSingle();
-  if (loadError) throw loadError;
-
-  const versions = readVersionsFromRow(existingRow?.data);
-  versions.push({
-    updatedAt: snapshot?._meta?.updatedAt || new Date().toISOString(),
-    data: snapshot
-  });
-  const compactVersions = versions.slice(-5);
-
-  const { error } = await state.supabase
-    .from("user_backups")
-    .upsert({
-      user_id: state.authUser.id,
-      data: { versions: compactVersions },
-      updated_at: new Date().toISOString()
-    }, { onConflict: "user_id" });
-  if (error) throw error;
-}
-
-async function loadBackupFromCloud() {
-  if (!state.supabase || !state.authUser) throw new Error("AUTH_REQUIRED");
-  const { data, error } = await state.supabase
-    .from("user_backups")
-    .select("data,updated_at")
-    .eq("user_id", state.authUser.id)
-    .maybeSingle();
-  if (error) throw error;
-  return data;
-}
-
 async function handleSyncNow() {
-  const copy = getAuthCopy(state.locale);
-  if (state.demoMode) {
-    setFeedback(copy.demoBlocked);
+  if (state.settings.demoMode) {
+    setFeedback(t("demoBlocked"));
     return;
   }
   try {
-    await runAutoSync(true);
-    setFeedback(copy.synced);
+    await dbService.runAutoSync(true);
+    setFeedback(t("synced"));
   } catch (_) {
-    setSyncStatus("error");
-    refreshSyncLines();
-    setFeedback(copy.authError);
+    setFeedback(t("authError"));
   }
 }
 
 async function handleRestoreFromCloud() {
-  const copy = getAuthCopy(state.locale);
-  if (state.demoMode) {
-    setFeedback(copy.demoBlocked);
+  if (state.settings.demoMode) {
+    setFeedback(t("demoBlocked"));
     return;
   }
   try {
-    setSyncStatus("syncing");
-    refreshSyncLines();
-    const row = await loadBackupFromCloud();
-    const versions = readVersionsFromRow(row?.data);
+    const row = await dbService.loadFromCloud();
+    const dataObj = typeof row?.data === "string" ? JSON.parse(row.data) : row?.data;
+    const versions = (Array.isArray(dataObj?.versions) ? dataObj.versions : []);
     const latest = versions.length ? versions[versions.length - 1].data : null;
+    
     if (!latest) {
-      setFeedback(copy.noBackup);
-      setSyncStatus("pending");
-      refreshSyncLines();
+      setFeedback(t("noBackup"));
       return;
     }
-    const confirmed = window.confirm(copy.restoreConfirm);
-    if (!confirmed) {
-      setSyncStatus("pending");
-      refreshSyncLines();
-      return;
-    }
-    await importLocalData(latest);
-    state.sync.lastSyncAt = new Date().toISOString();
-    setSyncStatus("up_to_date");
-    refreshSyncLines();
-    setFeedback(copy.restored);
+    if (!window.confirm(t("restoreConfirm"))) return;
+
+    await dbService.importLocalData(latest);
+    setFeedback(t("restored"));
     window.location.replace(getCleanAppUrl());
   } catch (_) {
-    setSyncStatus("error");
-    refreshSyncLines();
-    setFeedback(copy.authError);
+    setFeedback(t("authError"));
   }
 }
 
-function scheduleAutoSync() {
-  if (!state.supabase || !state.authUser || state.demoMode || state.sync.suspendWrites) return;
-  state.sync.dirty = true;
-  setSyncStatus("pending");
-  refreshSyncLines();
-  localStorage.setItem(SYNC_PENDING_KEY, "true");
-
-  if (state.sync.debounceId) {
-    clearTimeout(state.sync.debounceId);
-  }
-
-  // Debounce writes to avoid frequent cloud requests while user is actively editing.
-  state.sync.debounceId = setTimeout(() => {
-    state.sync.debounceId = null;
-    runAutoSync(false).catch(() => { });
-  }, AUTO_SYNC_DEBOUNCE_MS);
-}
-
-async function runAutoSync(force = false) {
-  if (!state.supabase || !state.authUser || state.demoMode) return false;
-  if (!force && !state.sync.dirty && localStorage.getItem(SYNC_PENDING_KEY) !== "true") return false;
-
-  const elapsed = Date.now() - state.sync.lastSyncRunAt;
-  if (!force && elapsed < AUTO_SYNC_THROTTLE_MS) {
-    const wait = AUTO_SYNC_THROTTLE_MS - elapsed;
-    if (!state.sync.throttleId) {
-      // Throttle cloud calls so we do not sync more often than once per 30s.
-      state.sync.throttleId = setTimeout(() => {
-        state.sync.throttleId = null;
-        runAutoSync(false).catch(() => { });
-      }, wait);
-    }
-    return false;
-  }
-
-  try {
-    setSyncStatus("syncing");
-    refreshSyncLines();
-    state.sync.lastSyncRunAt = Date.now();
-
-    const snapshot = await exportLocalData();
-    await saveBackupToCloud(snapshot);
-    state.sync.lastSyncAt = snapshot._meta.updatedAt;
-    state.sync.dirty = false;
-    localStorage.removeItem(SYNC_PENDING_KEY);
-    localStorage.setItem("pricingplus_last_sync_at", state.sync.lastSyncAt);
-    setSyncStatus("up_to_date");
-    refreshSyncLines();
-    return true;
-  } catch (error) {
-    state.sync.dirty = true;
-    localStorage.setItem(SYNC_PENDING_KEY, "true");
-    setSyncStatus("error");
-    refreshSyncLines();
-    throw error;
-  }
-}
-
-async function flushAutoSync(options = {}) {
-  if (!state.supabase || !state.authUser || state.demoMode) return;
-  if (!state.sync.dirty && localStorage.getItem(SYNC_PENDING_KEY) !== "true") return;
-
-  if (!options.beforeUnload) {
-    await runAutoSync(true);
-    return;
-  }
-
-  try {
-    const snapshot = await exportLocalData();
-    const body = JSON.stringify({
-      user_id: state.authUser.id,
-      data: { versions: [{ updatedAt: snapshot._meta.updatedAt, data: snapshot }] },
-      updated_at: snapshot._meta.updatedAt
-    });
-    const canUseBeacon = Boolean(navigator.sendBeacon) && body.length < 60000;
-
-    if (canUseBeacon) {
-      // Supabase PostgREST does not support custom headers with sendBeacon, so we pass keys in query for best-effort only.
-      const beaconUrl = `${SUPABASE_URL}/rest/v1/user_backups?on_conflict=user_id&apikey=${encodeURIComponent(SUPABASE_ANON_KEY)}&access_token=${encodeURIComponent(state.authToken || "")}`;
-      const blob = new Blob([body], { type: "application/json" });
-      const sent = navigator.sendBeacon(beaconUrl, blob);
-      if (sent) return;
-    }
-
-    await fetch(`${SUPABASE_URL}/rest/v1/user_backups?on_conflict=user_id`, {
-      method: "POST",
-      keepalive: true,
-      headers: {
-        "content-type": "application/json",
-        apikey: SUPABASE_ANON_KEY,
-        Authorization: `Bearer ${state.authToken || ""}`,
-        Prefer: "resolution=merge-duplicates,return=minimal"
-      },
-      body
-    });
-  } catch (_) {
-    localStorage.setItem(SYNC_PENDING_KEY, "true");
-    setSyncStatus("pending");
-    refreshSyncLines();
-  }
-}
-
-function wrapStorageWritesForSync() {
-  if (state.sync.wrapApplied) return;
-  state.sync.wrapApplied = true;
-
-  // Wrap existing storage write APIs once so auto-sync runs only after successful local writes.
-  const writeMethods = ["saveProject", "upsertMaterial", "upsertProduct", "deleteMaterial", "deleteProduct", "clearAllData"];
-  writeMethods.forEach((name) => {
-    if (typeof storage[name] !== "function") return;
-    const original = storage[name].bind(storage);
-    storage[name] = async (...args) => {
-      const result = await original(...args);
-      if (!state.sync.suspendWrites) {
-        scheduleAutoSync();
-      }
-      return result;
-    };
-  });
-}
+// Storage write mapping is now integrated into dbService.
 
 function closeAccountDropdown() {
   if (!refs.accountDropdown || !refs.accountChipBtn) return;
@@ -927,64 +685,36 @@ async function initAuth() {
     return;
   }
 
-  try {
-    state.supabase = await getSupabaseClient();
-    if (!state.supabase) {
-      renderAuthPanel();
-      return;
+  // Use authService for initialization and session management
+  await authService.init((event, _session) => {
+    if (!authService.getCurrentUser()) {
+      closeAccountDropdown();
     }
-
-    const { data } = await state.supabase.auth.getSession();
-    state.authUser = data.session?.user || null;
-    state.authToken = data.session?.access_token || "";
-    state.sync.lastSyncAt = localStorage.getItem("pricingplus_last_sync_at") || "";
-    if (localStorage.getItem(SYNC_PENDING_KEY) === "true") {
-      state.sync.dirty = true;
-      setSyncStatus("pending");
-    } else {
-      setSyncStatus(state.sync.lastSyncAt ? "up_to_date" : "pending");
-    }
-
-    state.supabase.auth.onAuthStateChange((_event, session) => {
-      state.authUser = session?.user || null;
-      state.authToken = session?.access_token || "";
-      if (!state.authUser) {
-        closeAccountDropdown();
-      }
-      renderAuthPanel();
-    });
-  } catch (_) {
-    state.supabase = null;
-    state.authUser = null;
-    state.authToken = "";
-  }
+    renderAuthPanel();
+  });
 
   refs.syncNowBtn?.addEventListener("click", handleSyncNow);
   refs.restoreCloudBtn?.addEventListener("click", handleRestoreFromCloud);
   refs.authSignOutBtn?.addEventListener("click", async () => {
-    const copy = getAuthCopy(state.locale);
-    if (!state.supabase) return;
-    await state.supabase.auth.signOut();
-    state.authUser = null;
-    state.authToken = "";
+    await authService.signOut();
     closeAccountDropdown();
-    setFeedback(copy.signOutDone);
+    setFeedback(t("signOutDone"));
     renderAuthPanel();
   });
 
   document.addEventListener("visibilitychange", () => {
     if (document.visibilityState === "hidden") {
-      flushAutoSync({ beforeUnload: true });
+      dbService.runAutoSync(true).catch(() => {});
     }
   });
 
   window.addEventListener("beforeunload", () => {
-    flushAutoSync({ beforeUnload: true });
+    dbService.runAutoSync(true).catch(() => {});
   });
 
   renderAuthPanel();
-  if (state.sync.dirty) {
-    scheduleAutoSync();
+  if (state.settings.sync.dirty) {
+    dbService.scheduleAutoSync();
   }
 }
 
@@ -1001,24 +731,24 @@ function createInput(value = "", type = "text") {
 
 function unitTypeLabel(unitType) {
   const map = {
-    piece: state.t("unitTypePiece"),
-    g: state.t("unitTypeG"),
-    kg: state.t("unitTypeKg"),
-    ml: state.t("unitTypeMl"),
-    l: state.t("unitTypeL")
+    piece: state.settings.t("unitTypePiece"),
+    g: state.settings.t("unitTypeG"),
+    kg: state.settings.t("unitTypeKg"),
+    ml: state.settings.t("unitTypeMl"),
+    l: state.settings.t("unitTypeL")
   };
   return map[unitType] || unitType;
 }
 
 function pricingModeLabel(mode) {
-  return mode === "perPack" ? state.t("pricingModePerPack") : state.t("pricingModePerUnit");
+  return mode === "perPack" ? state.settings.t("pricingModePerPack") : state.settings.t("pricingModePerUnit");
 }
 
 function normalizeLegacyLabel(text, fallbackKey) {
   const value = String(text || "").trim();
-  if (!value) return state.t(fallbackKey);
-  if (state.locale === "ar" && /^(unit|variant)$/i.test(value)) {
-    return state.t(fallbackKey);
+  if (!value) return state.settings.t(fallbackKey);
+  if (state.settings.locale === "ar" && /^(unit|variant)$/i.test(value)) {
+    return state.settings.t(fallbackKey);
   }
   return value;
 }
@@ -1027,26 +757,26 @@ function renderCurrencySelect() {
   refs.currencyCode.innerHTML = "";
   const placeholder = document.createElement("option");
   placeholder.value = "";
-  placeholder.textContent = state.t("currencyPlaceholder");
+  placeholder.textContent = state.settings.t("currencyPlaceholder");
   placeholder.disabled = true;
   refs.currencyCode.append(placeholder);
 
-  state.currencies.forEach((currency) => {
+  state.settings.currencies.forEach((currency) => {
     const option = document.createElement("option");
     option.value = currency.code;
     option.textContent = getCurrencyDisplay(currency);
     refs.currencyCode.append(option);
   });
-  const selectedCode = state.currencies.some((item) => item.code === state.project.currencyCode)
-    ? state.project.currencyCode
+  const selectedCode = state.settings.currencies.some((item) => item.code === state.inputs.project.currencyCode)
+    ? state.inputs.project.currencyCode
     : "USD";
   refs.currencyCode.value = selectedCode || "";
-  state.project.currencyCode = selectedCode;
+  state.inputs.project.currencyCode = selectedCode;
 }
 
 function renderRecipeMaterialOptions() {
   refs.recipeMaterialOptions.innerHTML = "";
-  state.materialsLibrary.forEach((material) => {
+  state.inputs.materialsLibrary.forEach((material) => {
     const option = document.createElement("option");
     option.value = `${getMaterialDisplayName(material)} — ${material.id}`;
     refs.recipeMaterialOptions.append(option);
@@ -1054,12 +784,13 @@ function renderRecipeMaterialOptions() {
 }
 
 function renderSettingsLists() {
-  const t = state.t;
+  const t = state.settings.t;
 
   refs.fixedCostsList.innerHTML = "";
-  state.project.monthlyFixedCosts.forEach((row) => {
+  state.inputs.project.monthlyFixedCosts.forEach((row) => {
     const item = document.createElement("div");
     item.className = "row fixed-cost-row";
+    item.dataset.id = row.id;
 
     const nameLabel = document.createElement("label");
     nameLabel.className = "fixed-label";
@@ -1081,7 +812,7 @@ function renderSettingsLists() {
     remove.className = "remove";
     remove.textContent = t("remove");
     remove.onclick = () => {
-      state.project.monthlyFixedCosts = state.project.monthlyFixedCosts.filter((x) => x.id !== row.id);
+      state.inputs.project.monthlyFixedCosts = state.inputs.project.monthlyFixedCosts.filter((x) => x.id !== row.id);
       renderSettingsLists();
     };
 
@@ -1098,9 +829,10 @@ function renderSettingsLists() {
   });
 
   refs.equipmentList.innerHTML = "";
-  state.project.equipmentDepreciation.forEach((row) => {
+  state.inputs.project.equipmentDepreciation.forEach((row) => {
     const item = document.createElement("div");
     item.className = "row equipment-row";
+    item.dataset.id = row.id;
 
     const name = createInput(row.name, "text");
     const purchasePrice = createInput(row.purchasePrice, "number");
@@ -1116,7 +848,7 @@ function renderSettingsLists() {
     remove.className = "remove";
     remove.textContent = t("remove");
     remove.onclick = () => {
-      state.project.equipmentDepreciation = state.project.equipmentDepreciation.filter((x) => x.id !== row.id);
+      state.inputs.project.equipmentDepreciation = state.inputs.project.equipmentDepreciation.filter((x) => x.id !== row.id);
       renderSettingsLists();
     };
 
@@ -1134,9 +866,9 @@ function renderMaterialPricingMode() {
     const packPrice = toNumber(refs.materialPackPrice.value, 0);
     const packSize = toNumber(refs.materialPackSize.value, 0);
     const unitCost = packSize > 0 ? packPrice / packSize : 0;
-    refs.materialPackExample.textContent = `${state.t("materialPackExample")} ${formatNumber(unitCost, state.locale, 4)}. ${state.t("materialPricingModeHintPerPack")}`;
+    refs.materialPackExample.textContent = `${state.settings.t("materialPackExample")} ${formatNumber(unitCost, state.settings.locale, 4)}. ${state.settings.t("materialPricingModeHintPerPack")}`;
   } else {
-    refs.materialPackExample.textContent = state.t("materialPricingModeHintPerUnit");
+    refs.materialPackExample.textContent = state.settings.t("materialPricingModeHintPerUnit");
   }
 }
 
@@ -1144,7 +876,7 @@ function collectMaterialFromForm() {
   const base = createDefaultMaterial();
   return {
     ...base,
-    id: state.editingMaterialId || base.id,
+    id: state.settings.editingMaterialId || base.id,
     name_ar: refs.materialNameAr.value.trim(),
     name_en: refs.materialNameEn.value.trim(),
     unitType: refs.materialUnitType.value || "piece",
@@ -1157,7 +889,7 @@ function collectMaterialFromForm() {
 }
 
 function resetMaterialForm() {
-  state.editingMaterialId = null;
+  state.settings.editingMaterialId = null;
   const material = createDefaultMaterial();
   refs.materialNameAr.value = "";
   refs.materialNameEn.value = "";
@@ -1176,9 +908,9 @@ function materialMatchSearch(material, q) {
 }
 
 function renderMaterialsLibraryList() {
-  const t = state.t;
+  const t = state.settings.t;
   const q = refs.materialsSearch.value.trim();
-  const list = q ? state.materialsLibrary.filter((m) => materialMatchSearch(m, q)) : state.materialsLibrary;
+  const list = q ? state.inputs.materialsLibrary.filter((m) => materialMatchSearch(m, q)) : state.inputs.materialsLibrary;
 
   refs.materialsLibraryList.innerHTML = "";
   if (!list.length) {
@@ -1195,7 +927,7 @@ function renderMaterialsLibraryList() {
     const unitCost = calculateMaterialBaseUnitCost(material);
 
     const info = document.createElement("div");
-    info.innerHTML = `<strong>${escapeHTML(getMaterialDisplayName(material))}</strong><div class="meta">${escapeHTML(unitTypeLabel(material.unitType))} • ${escapeHTML(pricingModeLabel(material.pricingMode))} • ${escapeHTML(formatMoney(unitCost, state.project.currencyCode, state.locale))}</div>`;
+    info.innerHTML = `<strong>${escapeHTML(getMaterialDisplayName(material))}</strong><div class="meta">${escapeHTML(unitTypeLabel(material.unitType))} • ${escapeHTML(pricingModeLabel(material.pricingMode))} • ${escapeHTML(formatMoney(unitCost, state.inputs.project.currencyCode, state.settings.locale))}</div>`;
 
     const actions = document.createElement("div");
     actions.className = "item-actions";
@@ -1204,7 +936,7 @@ function renderMaterialsLibraryList() {
     edit.type = "button";
     edit.textContent = t("edit");
     edit.onclick = () => {
-      state.editingMaterialId = material.id;
+      state.settings.editingMaterialId = material.id;
       refs.materialNameAr.value = material.name_ar || "";
       refs.materialNameEn.value = material.name_en || "";
       refs.materialUnitType.value = material.unitType || "piece";
@@ -1221,17 +953,17 @@ function renderMaterialsLibraryList() {
     remove.className = "remove";
     remove.textContent = t("delete");
     remove.onclick = async () => {
-      if (!state.demoMode) {
-        await storage.deleteMaterial(material.id);
+      if (!state.settings.demoMode) {
+        await dbService.deleteMaterial(material.id);
       }
-      state.materialsLibrary = state.materialsLibrary.filter((m) => m.id !== material.id);
-      if (state.demoMode) {
+      state.inputs.materialsLibrary = state.inputs.materialsLibrary.filter((m) => m.id !== material.id);
+      if (state.settings.demoMode) {
         state.products = state.products.map((product) => ({
           ...product,
           recipe: (product.recipe || []).filter((component) => component.materialId !== material.id)
         }));
       } else {
-        state.products = (await storage.listProducts()).map(normalizeProduct);
+        state.products = (await dbService.getProducts()).map(normalizeProduct);
       }
       renderMaterialsLibraryList();
       renderRecipeMaterialOptions();
@@ -1247,7 +979,7 @@ function renderMaterialsLibraryList() {
 }
 
 function recipeLabelFromId(materialId) {
-  const material = state.materialsLibrary.find((m) => m.id === materialId);
+  const material = state.inputs.materialsLibrary.find((m) => m.id === materialId);
   if (!material) return "";
   return `${getMaterialDisplayName(material)} — ${material.id}`;
 }
@@ -1255,13 +987,13 @@ function recipeLabelFromId(materialId) {
 function materialIdFromRecipeInput(value) {
   const text = String(value || "").trim();
   if (!text) return "";
-  const byTail = state.materialsLibrary.find((m) => text.endsWith(`— ${m.id}`));
+  const byTail = state.inputs.materialsLibrary.find((m) => text.endsWith(`— ${m.id}`));
   if (byTail) return byTail.id;
 
-  const byId = state.materialsLibrary.find((m) => m.id === text);
+  const byId = state.inputs.materialsLibrary.find((m) => m.id === text);
   if (byId) return byId.id;
 
-  const byName = state.materialsLibrary.find((m) => {
+  const byName = state.inputs.materialsLibrary.find((m) => {
     const name = getMaterialDisplayName(m).toLowerCase();
     return name === text.toLowerCase();
   });
@@ -1269,13 +1001,14 @@ function materialIdFromRecipeInput(value) {
 }
 
 function renderRecipeRows(recipe) {
-  const t = state.t;
+  const t = state.settings.t;
   refs.recipeList.innerHTML = "";
 
   recipe.forEach((row) => {
     const wrapper = document.createElement("div");
     wrapper.className = "row";
-    wrapper.dataset.id = row.id || uid("recipe");
+    wrapper.dataset.tempId = row.tempId;
+    wrapper.dataset.id = row.id || row.tempId;
 
     const materialInput = createInput(recipeLabelFromId(row.materialId), "text");
     materialInput.setAttribute("list", "recipeMaterialOptions");
@@ -1302,7 +1035,7 @@ function renderRecipeRows(recipe) {
 }
 
 function renderVariantRows(variants) {
-  const t = state.t;
+  const t = state.settings.t;
   refs.variantsList.innerHTML = "";
 
   function createHelp(arText, enText) {
@@ -1322,7 +1055,7 @@ function renderVariantRows(variants) {
   }
 
   variants.forEach((variant) => {
-    const isAr = state.locale === "ar";
+    const isAr = state.settings.locale === "ar";
     const row = document.createElement("div");
     row.className = "row variant-row";
     row.dataset.id = variant.id || uid("variant");
@@ -1549,7 +1282,7 @@ function renderVariantRows(variants) {
     const advancedToggle = document.createElement("button");
     advancedToggle.type = "button";
     advancedToggle.className = "variant-advanced-toggle btn btn-secondary";
-    advancedToggle.textContent = state.locale === "ar" ? "⚙ خيارات متقدمة" : "⚙ Advanced options";
+    advancedToggle.textContent = t("advancedToggleBtn");
     advancedToggle.setAttribute("aria-expanded", "false");
     mainBlock.append(advancedToggle);
 
@@ -1602,7 +1335,7 @@ function currentVariantsFromForm() {
     const deliveryBasis = row.querySelector(".variant-delivery-basis");
     return {
       id: row.dataset.id || uid("variant"),
-      name: (nameInput?.value || "").trim() || state.t("defaultVariantName"),
+      name: (nameInput?.value || "").trim() || state.settings.t("defaultVariantName"),
       unitsPerVariant: Math.max(1, Math.floor(toNumber(unitsInput?.value, 1))),
       extraPackagingCost: Math.max(0, toNumber(extraInput?.value, 0)),
       sellingPriceOverride: Math.max(0, toNumber(sellingInput?.value, 0)),
@@ -1644,10 +1377,10 @@ function normalizeProduct(product) {
 }
 
 function resetProductForm() {
-  state.editingProductId = null;
+  state.settings.editingProductId = null;
   const product = createDefaultProduct();
   refs.productName.value = "";
-  refs.unitName.value = state.t("defaultUnitName");
+  refs.unitName.value = state.settings.t("defaultUnitName");
   refs.laborMinutes.value = "0";
   refs.energyKw.value = "0";
   refs.energyMinutes.value = "0";
@@ -1657,7 +1390,7 @@ function resetProductForm() {
 }
 
 function renderProductsList() {
-  const t = state.t;
+  const t = state.settings.t;
   refs.productsList.innerHTML = "";
 
   if (!state.products.length) {
@@ -1669,49 +1402,34 @@ function renderProductsList() {
   }
 
   state.products.forEach((product) => {
-    const item = document.createElement("article");
-    item.className = "product-item";
-
-    const info = document.createElement("div");
-    info.innerHTML = `<strong>${escapeHTML(product.name)}</strong><div class="meta">${escapeHTML(product.recipe.length)} ${escapeHTML(t("recipeItemsShort"))} • ${escapeHTML(product.variants.length)} ${escapeHTML(t("variantsShort"))}</div>`;
-
-    const actions = document.createElement("div");
-    actions.className = "item-actions";
-
-    const edit = document.createElement("button");
-    edit.type = "button";
-    edit.textContent = t("edit");
-    edit.onclick = () => {
-      state.editingProductId = product.id;
-      refs.productName.value = product.name;
-      refs.unitName.value = normalizeLegacyLabel(product.unitName, "defaultUnitName");
-      refs.laborMinutes.value = product.laborMinutes || 0;
-      refs.energyKw.value = product.energy?.kw || 0;
-      refs.energyMinutes.value = product.energy?.minutes || 0;
-      refs.energyPricePerKwh.value = product.energy?.pricePerKwh || 0;
-      renderRecipeRows(product.recipe || []);
-      renderVariantRows(product.variants || []);
-    };
-
-    const remove = document.createElement("button");
-    remove.type = "button";
-    remove.className = "remove";
-    remove.textContent = t("delete");
-    remove.onclick = async () => {
-      if (!state.demoMode) {
-        await storage.deleteProduct(product.id);
+    const item = ProductItem({
+      product,
+      t,
+      escapeHTML,
+      onEdit: () => {
+        state.settings.editingProductId = product.id;
+        refs.productName.value = product.name;
+        refs.unitName.value = normalizeLegacyLabel(product.unitName, "defaultUnitName");
+        refs.laborMinutes.value = product.laborMinutes || 0;
+        refs.energyKw.value = product.energy?.kw || 0;
+        refs.energyMinutes.value = product.energy?.minutes || 0;
+        refs.energyPricePerKwh.value = product.energy?.pricePerKwh || 0;
+        renderRecipeRows(product.recipe || []);
+        renderVariantRows(product.variants || []);
+      },
+      onDelete: async () => {
+        if (!state.settings.demoMode) {
+          await dbService.deleteProduct(product.id);
+        }
+        setProducts(state.products.filter((p) => p.id !== product.id));
+        if (state.settings.selectedProductId === product.id) {
+          updateSetting("selectedProductId", state.products[0]?.id ?? null);
+        }
+        renderProductsList();
+        renderProductPicker();
+        setFeedback(t("feedbackDeleted"));
       }
-      state.products = state.products.filter((p) => p.id !== product.id);
-      if (state.selectedProductId === product.id) {
-        state.selectedProductId = state.products[0]?.id ?? null;
-      }
-      renderProductsList();
-      renderProductPicker();
-      setFeedback(t("feedbackDeleted"));
-    };
-
-    actions.append(edit, remove);
-    item.append(info, actions);
+    });
     refs.productsList.append(item);
   });
 }
@@ -1725,11 +1443,11 @@ function renderProductPicker() {
     refs.resultProductSelect.append(option);
   });
 
-  if (!state.selectedProductId && state.products.length) {
-    state.selectedProductId = state.products[0].id;
+  if (!state.settings.selectedProductId && state.products.length) {
+    state.settings.selectedProductId = state.products[0].id;
   }
 
-  refs.resultProductSelect.value = state.selectedProductId || "";
+  refs.resultProductSelect.value = state.settings.selectedProductId || "";
 }
 
 function collectProjectFromForm() {
@@ -1739,26 +1457,33 @@ function collectProjectFromForm() {
   const selectedUnits = hasSales === "yes" ? directSales : optionalSales;
   const salesDefined = selectedUnits > 0;
 
+  const baseProject = state.inputs.project || createDefaultProject();
+
   return {
-    ...state.project,
+    ...baseProject,
     dataVersion: 3,
     currencyCode: refs.currencyCode.value || "USD",
     hourlyRate: toNumber(refs.hourlyRate.value, 0),
     expectedMonthlyUnits: salesDefined ? selectedUnits : 1,
     expectedMonthlySales: salesDefined ? selectedUnits : 0,
     safetyMarginPercent: toNumber(refs.safetyMarginPercent.value, 5),
-    pricingMode: state.uiMode === "simple" ? "markup" : getCurrentPricingMode(),
+    pricingMode: state.settings.uiMode === "simple" ? "markup" : getCurrentPricingMode(),
     pricingPercent: toNumber(refs.pricingPercent.value, 30),
+    taxRate: toNumber(refs.taxRateInput?.value, 0),
+    wholesaleDiscount: toNumber(refs.wholesaleDiscountInput?.value, 0),
     hasSales,
     salesUnitsInput: selectedUnits,
     salesUndefined: !salesDefined,
-    uiMode: state.uiMode
+    uiMode: state.settings.uiMode
   };
 }
 
 async function saveSettings() {
-  const t = state.t;
+  const t = state.settings.t;
   const project = collectProjectFromForm();
+
+  const fixedCosts = project.monthlyFixedCosts || [];
+  const equipment = project.equipmentDepreciation || [];
 
   if (!validateNonNegative([
     project.hourlyRate,
@@ -1766,24 +1491,24 @@ async function saveSettings() {
     project.expectedMonthlySales,
     project.safetyMarginPercent,
     project.pricingPercent,
-    ...project.monthlyFixedCosts.map((x) => x.amount),
-    ...project.equipmentDepreciation.map((x) => x.purchasePrice),
-    ...project.equipmentDepreciation.map((x) => x.lifetimeMonths)
+    ...fixedCosts.map((x) => x.amount),
+    ...equipment.map((x) => x.purchasePrice),
+    ...equipment.map((x) => x.lifetimeMonths)
   ])) {
     setFeedback(t("validationPositive"));
     return;
   }
 
-  state.project = project;
-  if (!state.demoMode) {
-    await storage.saveProject(project);
+  updateInput("project", project);
+  if (!state.settings.demoMode) {
+    await dbService.saveProject(project);
   }
   setFeedback(t("feedbackSaved"));
 }
 
 async function saveMaterial(event) {
   event.preventDefault();
-  const t = state.t;
+  const t = state.settings.t;
   const material = collectMaterialFromForm();
 
   if (!material.name_ar.trim() && !material.name_en.trim()) {
@@ -1796,14 +1521,14 @@ async function saveMaterial(event) {
     return;
   }
 
-  if (!state.demoMode) {
-    await storage.upsertMaterial(material);
+  if (!state.settings.demoMode) {
+    await dbService.upsertMaterial(material);
   }
-  const idx = state.materialsLibrary.findIndex((m) => m.id === material.id);
-  if (idx >= 0) state.materialsLibrary[idx] = material;
-  else state.materialsLibrary.push(material);
+  const idx = state.inputs.materialsLibrary.findIndex((m) => m.id === material.id);
+  if (idx >= 0) state.inputs.materialsLibrary[idx] = material;
+  else state.inputs.materialsLibrary.push(material);
 
-  state.materialsLibrary.sort((a, b) => getMaterialDisplayName(a).localeCompare(getMaterialDisplayName(b)));
+  state.inputs.materialsLibrary.sort((a, b) => getMaterialDisplayName(a).localeCompare(getMaterialDisplayName(b)));
   resetMaterialForm();
   renderMaterialsLibraryList();
   renderRecipeMaterialOptions();
@@ -1813,7 +1538,7 @@ async function saveMaterial(event) {
 async function saveProduct(event) {
   event.preventDefault();
 
-  const t = state.t;
+  const t = state.settings.t;
   const productName = refs.productName.value.trim();
   if (!productName) {
     setFeedback(t("validationRequired"));
@@ -1833,7 +1558,7 @@ async function saveProduct(event) {
   }
 
   const product = {
-    id: state.editingProductId || uid("product"),
+    id: state.settings.editingProductId || uid("product"),
     name: productName,
     unitName: refs.unitName.value.trim() || t("defaultUnitName"),
     laborMinutes: Math.max(0, Math.floor(toNumber(refs.laborMinutes.value, 0))),
@@ -1861,14 +1586,14 @@ async function saveProduct(event) {
     return;
   }
 
-  if (!state.demoMode) {
-    await storage.upsertProduct(product);
+  if (!state.settings.demoMode) {
+    await dbService.upsertProduct(product);
   }
   const idx = state.products.findIndex((p) => p.id === product.id);
   if (idx >= 0) state.products[idx] = product;
   else state.products.unshift(product);
 
-  state.selectedProductId = product.id;
+  state.settings.selectedProductId = product.id;
   renderProductsList();
   renderProductPicker();
   resetProductForm();
@@ -1877,16 +1602,16 @@ async function saveProduct(event) {
 
 async function applyDemoSeed(demoKey) {
   const demo = buildDemoSeed(demoKey);
-  state.demoMode = true;
-  state.project = {
+  updateSetting("demoMode", true);
+  updateInput("project", {
     ...demo.project,
-    localeMode: state.locale
-  };
-  state.materialsLibrary = demo.materials.map((material) => ({ ...material }));
-  state.products = [normalizeProduct(demo.product)];
-  state.selectedProductId = demo.product.id;
+    localeMode: state.settings.locale
+  });
+  updateInput("materialsLibrary", demo.materials.map((material) => ({ ...material })));
+  setProducts([normalizeProduct(demo.product)]);
+  updateSetting("selectedProductId", demo.product.id);
 
-  applyLocale(state.locale);
+  applyLocale(state.settings.locale);
   fillSettingsFromState();
   renderProductsList();
   renderProductPicker();
@@ -1896,11 +1621,11 @@ async function applyDemoSeed(demoKey) {
   renderResults();
   renderDemoModeBanner();
   renderDemoDeleteButton();
-  setFeedback(state.t("feedbackDemoApplied"));
+  setFeedback(state.settings.t("feedbackDemoApplied"));
 }
 
 async function deleteCurrentDemoIfAny() {
-  if (!state.demoMode) return;
+  if (!state.settings.demoMode) return;
   exitDemoModeReload();
 }
 
@@ -1918,7 +1643,7 @@ async function consumeDemoFromQuery() {
 }
 
 function getResetProjectLabel(locale) {
-  return locale === "ar" ? "🔄 بدء مشروع جديد" : "🔄 Start New Project";
+  return t("startNewProjectBtn");
 }
 
 function getResetProjectConfirm(locale) {
@@ -1928,13 +1653,13 @@ function getResetProjectConfirm(locale) {
 }
 
 async function resetProjectAndReload() {
-  const confirmed = window.confirm(getResetProjectConfirm(state.locale));
+  const confirmed = window.confirm(getResetProjectConfirm(state.settings.locale));
   if (!confirmed) return;
-  if (state.demoMode) {
+  if (state.settings.demoMode) {
     exitDemoModeReload();
     return;
   }
-  await storage.clearAllData();
+  await dbService.clearAllData();
   window.location.replace(getCleanAppUrl());
 }
 
@@ -1973,13 +1698,14 @@ function hasInvalidMetrics(metrics) {
 
 function renderResults() {
   try {
-    const t = state.t;
-    const isAr = state.locale === "ar";
-    const product = state.products.find((p) => p.id === state.selectedProductId);
+    const t = state.settings.t;
+    const isAr = state.settings.locale === "ar";
+    const product = state.products.find((p) => p.id === state.settings.selectedProductId);
     if (!product) return;
 
     const sellingPrice = toNumber(refs.resultSellingPrice.value, 0);
-    const metrics = buildProductMetrics(state.project, product, state.materialsLibrary, sellingPrice);
+    const wholesaleDiscount = toNumber(refs.wholesaleDiscountInput?.value, 0);
+    const metrics = buildProductMetrics(state.inputs.project, product, state.inputs.materialsLibrary, sellingPrice, wholesaleDiscount);
     if (hasInvalidMetrics(metrics)) {
       trackEvent("calculation_error", { page: window.location.pathname || "/app/" });
       setFeedback(t("unexpectedError"));
@@ -2017,10 +1743,10 @@ function renderResults() {
     const getDeltaLine = (variantMetrics) => {
       const deltaDrivers = [];
       if (toNumber(variantMetrics.extraPackagingCost, 0) > 0) {
-        deltaDrivers.push(`${isAr ? "تغليف/رسوم" : "Packaging/fees"} +${formatMoney(variantMetrics.extraPackagingCost, state.project.currencyCode, state.locale)}`);
+        deltaDrivers.push(`${isAr ? "تغليف/رسوم" : "Packaging/fees"} +${formatMoney(variantMetrics.extraPackagingCost, state.inputs.project.currencyCode, state.settings.locale)}`);
       }
       if (variantMetrics.hasDelivery && variantMetrics.deliveryAffectsProfit && toNumber(variantMetrics.deliveryCostApplied, 0) > 0) {
-        deltaDrivers.push(`${isAr ? "توصيل" : "Delivery"} +${formatMoney(variantMetrics.deliveryCostApplied, state.project.currencyCode, state.locale)}${isAr ? " (يتحمله التاجر)" : " (merchant-paid)"}`);
+        deltaDrivers.push(`${isAr ? "توصيل" : "Delivery"} +${formatMoney(variantMetrics.deliveryCostApplied, state.inputs.project.currencyCode, state.settings.locale)}${isAr ? " (يتحمله التاجر)" : " (merchant-paid)"}`);
       }
       const customerDeliveryNote = variantMetrics.hasDelivery && !variantMetrics.deliveryAffectsProfit
         ? (isAr
@@ -2052,11 +1778,11 @@ function renderResults() {
 
       const productsMetrics = state.products.map((item) => ({
         product: item,
-        metrics: buildProductMetrics(state.project, item, state.materialsLibrary, sellingPrice)
+        metrics: buildProductMetrics(state.inputs.project, item, state.inputs.materialsLibrary, sellingPrice, wholesaleDiscount)
       }));
 
       const totalMonthlyProfit = productsMetrics.reduce((sum, entry) => sum + (Number.isFinite(entry.metrics.monthlyProfit) ? entry.metrics.monthlyProfit : 0), 0);
-      const expectedSales = Math.max(0, toNumber(state.project.expectedMonthlySales, 0));
+      const expectedSales = Math.max(0, toNumber(state.inputs.project.expectedMonthlySales, 0));
       const revenueAvailable = expectedSales > 0 && productsMetrics.every((entry) => Number.isFinite(entry.metrics.sellingPrice));
       const totalRevenue = revenueAvailable
         ? productsMetrics.reduce((sum, entry) => sum + (entry.metrics.sellingPrice * expectedSales), 0)
@@ -2064,84 +1790,42 @@ function renderResults() {
 
       if (allProductsSummary) {
         allProductsSummary.classList.remove("hidden");
-        allProductsSummary.innerHTML = `
-        <div class="summary-head">
-          <div class="summary-title">${escapeHTML(t("allProductsSummaryTitle"))}</div>
-          <div class="summary-subtitle">${escapeHTML(t("allProductsSummarySubtitle"))}</div>
-        </div>
-        <div class="summary-metrics">
-          <div class="metric">
-            <div class="name">${escapeHTML(t("totalProducts"))}</div>
-            <div class="value">${escapeHTML(productsMetrics.length)}</div>
-          </div>
-          <div class="metric">
-            <div class="name">${escapeHTML(t("totalExpectedProfit"))}</div>
-            <div class="value" style="color:var(--color-primary)">${escapeHTML(formatMoney(totalMonthlyProfit, state.project.currencyCode, state.locale))}</div>
-          </div>
-          ${totalRevenue === null
-            ? ""
-            : `<div class="metric">
-                <div class="name">${escapeHTML(isAr ? "إجمالي الإيراد الشهري المتوقع" : "Total expected monthly revenue")}</div>
-                <div class="value">${escapeHTML(formatMoney(totalRevenue, state.project.currencyCode, state.locale))}</div>
-              </div>`}
-        </div>
-      `;
+        allProductsSummary.innerHTML = "";
+        allProductsSummary.append(SummarySection({
+          productsMetrics,
+          totalMonthlyProfit,
+          totalRevenue,
+          t,
+          formatMoney,
+          escapeHTML,
+          currencyCode: state.inputs.project.currencyCode,
+          locale: state.settings.locale
+        }));
       }
 
       if (productsCompare) {
         productsCompare.classList.remove("hidden");
-        const tableTitle = document.createElement("h3");
-        tableTitle.textContent = isAr ? "مقارنة المنتجات" : "Products comparison";
-        productsCompare.append(tableTitle);
-
-        productsMetrics.forEach(({ product: productItem, metrics: productMetrics }) => {
-          const row = document.createElement("article");
-          row.className = "product-row";
-
-          const productStatus = getProfitStatus(productMetrics.variantMetrics[0] || productMetrics);
-          const variantDetails = productMetrics.variantMetrics.map((variantMetrics) => `
-          <div class="product-variant-row">
-            <div class="metric-head">
-              <strong>${escapeHTML(normalizeLegacyLabel(variantMetrics.name, "defaultVariantName"))}</strong>
-              <span class="badge scope-badge">${escapeHTML(isAr ? "حسب الطريقة" : "Per method")}</span>
-            </div>
-            <div class="product-variant-grid">
-              <div>${escapeHTML(t("metricTrueUnitCost"))}: <strong>${escapeHTML(formatMoney(variantMetrics.variantUnitCost, state.project.currencyCode, state.locale))}</strong></div>
-              <div>${escapeHTML(t("metricMinimumAcceptablePrice"))}: <strong>${escapeHTML(formatMoney(variantMetrics.minimumAcceptablePriceVariant, state.project.currencyCode, state.locale))}</strong></div>
-              <div>${escapeHTML(t("metricSuggestedPrice"))}: <strong>${escapeHTML(formatMoney(variantMetrics.suggestedPriceVariant, state.project.currencyCode, state.locale))}</strong></div>
-              <div>${escapeHTML(t("metricBreakEvenUnits"))}: <strong>${escapeHTML(Number.isFinite(variantMetrics.breakEvenUnitsVariant) ? formatNumber(variantMetrics.breakEvenUnitsVariant, state.locale, 2) : t("breakEvenImpossible"))}</strong></div>
-            </div>
-            <div class="delta-line">${escapeHTML(getDeltaLine(variantMetrics))}</div>
-          </div>
-        `).join("");
-
-          row.innerHTML = `
-          <div class="product-row-head">
-            <h4>${escapeHTML(productItem.name)}</h4>
-            <span class="badge ${escapeHTML(productStatus)}">${escapeHTML(t(productStatus === "green" ? "statusGreen" : productStatus === "yellow" ? "statusYellow" : "statusRed"))}</span>
-          </div>
-          <div class="product-row-grid">
-            <div><span class="muted">${escapeHTML(t("metricTrueUnitCost"))}</span><strong>${escapeHTML(formatMoney(productMetrics.trueUnitCost, state.project.currencyCode, state.locale))}</strong></div>
-            <div><span class="muted">${escapeHTML(t("metricMinimumAcceptablePrice"))}</span><strong>${escapeHTML(formatMoney(productMetrics.minimumAcceptablePrice, state.project.currencyCode, state.locale))}</strong></div>
-            <div><span class="muted">${escapeHTML(t("metricSuggestedPrice"))}</span><strong>${escapeHTML(formatMoney(productMetrics.suggestedPrice, state.project.currencyCode, state.locale))}</strong></div>
-            <div><span class="muted">${escapeHTML(t("metricBreakEvenUnits"))}</span><strong>${escapeHTML(Number.isFinite(productMetrics.breakEvenUnits) ? formatNumber(productMetrics.breakEvenUnits, state.locale, 2) : t("breakEvenImpossible"))}</strong></div>
-            <div><span class="muted">${escapeHTML(t("metricMonthlyProfit"))}</span><strong>${escapeHTML(formatMoney(productMetrics.monthlyProfit, state.project.currencyCode, state.locale))}</strong></div>
-          </div>
-          <details class="product-variant-details">
-            <summary>${escapeHTML(isAr ? "تفاصيل طرق البيع" : "Variant method details")}</summary>
-            <div class="product-variant-list">${variantDetails}</div>
-          </details>
-        `;
-          productsCompare.append(row);
-        });
+        productsCompare.innerHTML = "";
+        productsCompare.append(ComparisonTable({
+          productsMetrics,
+          t,
+          formatMoney,
+          formatNumber,
+          escapeHTML,
+          normalizeLegacyLabel,
+          getProfitStatus,
+          getDeltaLine,
+          currencyCode: state.inputs.project.currencyCode,
+          locale: state.settings.locale
+        }));
       }
 
       refs.monthlyTable.innerHTML = "";
       refs.calculationDetails.innerHTML = "";
       trackEvent("result_displayed", getLangCurrencyContext());
-      if (!state.analytics.breakevenViewed) {
+      if (!state.settings.analytics.breakevenViewed) {
         trackEvent("breakeven_viewed", getLangCurrencyContext());
-        state.analytics.breakevenViewed = true;
+        state.settings.analytics.breakevenViewed = true;
       }
       setFeedback(t("feedbackCalculated"));
       return;
@@ -2149,12 +1833,17 @@ function renderResults() {
 
     setSingleResultsVisibility(true);
 
+    const taxRate = toNumber(refs.taxRateInput?.value, 0);
+    const suggestedWithTax = calculatePriceWithTax(metrics.suggestedPrice, taxRate);
+
     const list = [
-      [t("metricTrueUnitCost"), formatMoney(metrics.trueUnitCost, state.project.currencyCode, state.locale)],
-      [t("metricMinimumAcceptablePrice"), formatMoney(metrics.minimumAcceptablePrice, state.project.currencyCode, state.locale)],
-      [t("metricSuggestedPrice"), formatMoney(metrics.suggestedPrice, state.project.currencyCode, state.locale)],
-      [t("metricBreakEvenUnits"), Number.isFinite(metrics.breakEvenUnits) ? formatNumber(metrics.breakEvenUnits, state.locale, 2) : t("breakEvenImpossible")],
-      [t("metricMonthlyProfit"), formatMoney(metrics.monthlyProfit, state.project.currencyCode, state.locale)]
+      [t("metricTrueUnitCost"), formatMoney(metrics.trueUnitCost, state.inputs.project.currencyCode, state.settings.locale)],
+      [t("metricMinimumAcceptablePrice"), formatMoney(metrics.minimumAcceptablePrice, state.inputs.project.currencyCode, state.settings.locale)],
+      [t("metricSuggestedPrice"), formatMoney(metrics.suggestedPrice, state.inputs.project.currencyCode, state.settings.locale)],
+      [t("metricWholesalePrice"), formatMoney(metrics.suggestedPrice * (1 - wholesaleDiscount / 100), state.inputs.project.currencyCode, state.settings.locale)],
+      [`${t("metricSuggestedPrice")} (${isAr ? "شامل الضريبة" : "Incl. VAT"})`, formatMoney(suggestedWithTax, state.inputs.project.currencyCode, state.settings.locale)],
+      [t("metricBreakEvenUnits"), Number.isFinite(metrics.breakEvenUnits) ? formatNumber(metrics.breakEvenUnits, state.settings.locale, 2) : t("breakEvenImpossible")],
+      [t("metricMonthlyProfit"), formatMoney(metrics.monthlyProfit, state.inputs.project.currencyCode, state.settings.locale)]
     ];
 
     list.forEach(([name, value], index) => {
@@ -2165,104 +1854,68 @@ function renderResults() {
     });
 
     metrics.variantMetrics.forEach((variant) => {
-      const status = getProfitStatus(variant);
-      let deliveryLine = t("variantDeliveryNone");
-      if (variant.hasDelivery) {
-        const modeKey = variant.deliveryPricingMode === "merchant_free"
-          ? "variantDeliveryModeMerchantFree"
-          : (variant.deliveryPricingMode === "included_in_price" ? "variantDeliveryModeIncludedInPrice" : "variantDeliveryModeCustomerSeparate");
-        const basisKey = variant.deliveryCostBasis === "perUnit" ? "variantDeliveryBasisPerUnit" : "variantDeliveryBasisPerOrder";
-        deliveryLine = `${t(modeKey)} • ${t(basisKey)} • ${formatMoney(variant.deliveryCost, state.project.currencyCode, state.locale)}`;
-      }
-
-      const deliveryCalcLine = variant.hasDelivery
-        ? (variant.deliveryAffectsProfit
-          ? `${t("metricDeliveryCost")}: ${formatMoney(variant.deliveryCostApplied, state.project.currencyCode, state.locale)}`
-          : t("deliverySeparateInfo"))
-        : t("variantDeliveryNone");
-
-      const deltaLine = getDeltaLine(variant);
-
-      const card = document.createElement("article");
-      card.className = "metric";
-      card.innerHTML = `
-      <div class="metric-head">
-        <div class="name">${escapeHTML(normalizeLegacyLabel(variant.name, "defaultVariantName"))}</div>
-        <span class="badge scope-badge">${escapeHTML(isAr ? "حسب الطريقة" : "Per method")}</span>
-      </div>
-      <div>${escapeHTML(t("metricTrueUnitCost"))}: <strong>${escapeHTML(formatMoney(variant.variantUnitCost, state.project.currencyCode, state.locale))}</strong></div>
-      <div>${escapeHTML(t("metricMinimumAcceptablePrice"))}: <strong>${escapeHTML(formatMoney(variant.minimumAcceptablePriceVariant, state.project.currencyCode, state.locale))}</strong></div>
-      <div>${escapeHTML(t("metricSuggestedPrice"))}: <strong>${escapeHTML(formatMoney(variant.suggestedPriceVariant, state.project.currencyCode, state.locale))}</strong></div>
-      <div>${escapeHTML(t("metricBreakEvenUnits"))}: <strong>${escapeHTML(Number.isFinite(variant.breakEvenUnitsVariant) ? formatNumber(variant.breakEvenUnitsVariant, state.locale, 2) : t("breakEvenImpossible"))}</strong></div>
-      <div>${escapeHTML(t("metricExtraPackaging"))}: <strong>${escapeHTML(formatMoney(variant.extraPackagingCost, state.project.currencyCode, state.locale))}</strong></div>
-      <div>${escapeHTML(t("deliveryLabel"))}: <strong>${escapeHTML(deliveryLine)}</strong></div>
-      <div class="muted">${escapeHTML(deliveryCalcLine)}</div>
-      <div class="delta-line">${escapeHTML(deltaLine)}</div>
-      <div class="badge ${escapeHTML(status)}">${escapeHTML(t(status === "green" ? "statusGreen" : status === "yellow" ? "statusYellow" : "statusRed"))}</div>
-    `;
+      const card = ResultCard({
+        variant,
+        taxRate,
+        t,
+        formatMoney,
+        formatNumber,
+        escapeHTML,
+        calculatePriceWithTax,
+        getProfitStatus,
+        getDeltaLine,
+        normalizeLegacyLabel,
+        currencyCode: state.inputs.project.currencyCode,
+        locale: state.settings.locale
+      });
       refs.variantCards.append(card);
     });
 
-    const firstVariant = metrics.variantMetrics[0] || metrics;
-    const status = getProfitStatus(firstVariant);
-    refs.statusBadge.className = `badge ${status}`;
-    refs.statusBadge.textContent = t(status === "green" ? "statusGreen" : status === "yellow" ? "statusYellow" : "statusRed");
+    refs.monthlyTable.innerHTML = "";
+    refs.monthlyTable.append(PricingTable({
+      metrics,
+      project: state.inputs.project,
+      t,
+      formatMoney,
+      formatNumber,
+      escapeHTML,
+      locale: state.settings.locale
+    }));
 
-    refs.monthlyTable.innerHTML = `
-    <h3>${escapeHTML(t("monthlyTableTitle"))}</h3>
-    ${state.project.salesUndefined ? `<p class="warn-note">${escapeHTML(t("salesUndefinedWarning"))}</p>` : ""}
-    <table>
-      <thead><tr><th>${escapeHTML(t("monthlyColumnScenario"))}</th><th>${escapeHTML(t("monthlyColumnValue"))}</th></tr></thead>
-      <tbody>
-        <tr><td>${escapeHTML(t("monthlyAtExpectedSales"))}</td><td>${escapeHTML(formatMoney(metrics.monthlyProfit, state.project.currencyCode, state.locale))}</td></tr>
-        <tr><td>${escapeHTML(t("monthlyAtBreakEven"))}</td><td>${escapeHTML(Number.isFinite(metrics.breakEvenUnits) ? formatNumber(metrics.breakEvenUnits, state.locale, 2) : t("breakEvenImpossible"))}</td></tr>
-        <tr><td>${escapeHTML(t("monthlyContribution"))}</td><td>${escapeHTML(formatMoney(metrics.sellingPrice - metrics.variableCostPerUnit, state.project.currencyCode, state.locale))}</td></tr>
-      </tbody>
-    </table>
-  `;
-
-    refs.calculationDetails.innerHTML = `
-    <h4>${escapeHTML(t("howCalculatedBtn"))}</h4>
-    <ul>
-      <li>${escapeHTML(t("metricMaterialsCost"))}: ${escapeHTML(formatMoney(metrics.materialsCost, state.project.currencyCode, state.locale))}</li>
-      <li>${escapeHTML(t("metricLaborCost"))}: ${escapeHTML(formatMoney(metrics.laborCost, state.project.currencyCode, state.locale))}</li>
-      <li>${escapeHTML(t("metricEnergyCost"))}: ${escapeHTML(formatMoney(metrics.energyCost, state.project.currencyCode, state.locale))}</li>
-      <li>${escapeHTML(t("metricFixedShare"))}: ${escapeHTML(formatMoney(metrics.fixedPerUnit, state.project.currencyCode, state.locale))}</li>
-      <li>${escapeHTML(t("metricVariableCost"))}: ${escapeHTML(formatMoney(metrics.variableCostPerUnit, state.project.currencyCode, state.locale))}</li>
-      <li>${escapeHTML(t("deliveryLabel"))}: ${escapeHTML(metrics.variantMetrics.some((variant) => variant.hasDelivery)
-      ? metrics.variantMetrics.map((variant) => {
-        if (!variant.hasDelivery) return `${normalizeLegacyLabel(variant.name, "defaultVariantName")}: ${t("variantDeliveryNone")}`;
-        if (!variant.deliveryAffectsProfit) return `${normalizeLegacyLabel(variant.name, "defaultVariantName")}: ${t("deliverySeparateInfo")}`;
-        return `${normalizeLegacyLabel(variant.name, "defaultVariantName")}: ${formatMoney(variant.deliveryCostApplied, state.project.currencyCode, state.locale)}`;
-      }).join(" | ")
-      : "-")}</li>
-    </ul>
-    <p class="muted" style="margin-top:8px">${escapeHTML(t("variableCostComponents"))}</p>
-  `;
+    refs.calculationDetails.innerHTML = "";
+    refs.calculationDetails.append(CostBreakdown({
+      metrics,
+      project: state.inputs.project,
+      t,
+      formatMoney,
+      escapeHTML,
+      normalizeLegacyLabel,
+      locale: state.settings.locale
+    }));
 
     trackEvent("result_displayed", getLangCurrencyContext());
-    if (!state.analytics.breakevenViewed) {
+    if (!state.settings.analytics.breakevenViewed) {
       trackEvent("breakeven_viewed", getLangCurrencyContext());
-      state.analytics.breakevenViewed = true;
+      state.settings.analytics.breakevenViewed = true;
     }
 
     setFeedback(t("feedbackCalculated"));
   } catch (error) {
     trackEvent("calculation_error", { page: window.location.pathname || "/app/" });
-    setFeedback(state.t("unexpectedError"));
+    setFeedback(state.settings.t("unexpectedError"));
   }
 }
 
 async function exportAllAsCsv() {
   try {
     exportCsv({
-      project: state.project,
+      project: state.inputs.project,
       products: state.products,
-      materialsLibrary: state.materialsLibrary,
-      locale: state.locale,
-      t: state.t
+      materialsLibrary: state.inputs.materialsLibrary,
+      locale: state.settings.locale,
+      t: state.settings.t
     });
-    setFeedback(state.t("feedbackExported"));
+    setFeedback(state.settings.t("feedbackExported"));
   } catch (error) {
     setFeedback(getFriendlyErrorMessage(error));
   }
@@ -2271,53 +1924,50 @@ async function exportAllAsCsv() {
 async function exportAllAsXlsx() {
   try {
     exportXlsx({
-      project: state.project,
+      project: state.inputs.project,
       products: state.products,
-      materialsLibrary: state.materialsLibrary,
-      locale: state.locale,
-      t: state.t
+      materialsLibrary: state.inputs.materialsLibrary,
+      locale: state.settings.locale,
+      t: state.settings.t
     });
-    setFeedback(state.t("feedbackExported"));
+    setFeedback(state.settings.t("feedbackExported"));
   } catch (error) {
     setFeedback(getFriendlyErrorMessage(error));
   }
 }
 
 async function exportCurrentAsPdf() {
-  const product = state.products.find((p) => p.id === state.selectedProductId);
+  const product = state.products.find((p) => p.id === state.settings.selectedProductId);
   if (!product) return;
 
-  const metrics = buildProductMetrics(state.project, product, state.materialsLibrary, toNumber(refs.resultSellingPrice.value, 0));
+  const metrics = buildProductMetrics(state.inputs.project, product, state.inputs.materialsLibrary, toNumber(refs.resultSellingPrice.value, 0));
   try {
     await exportPdf({
-      project: state.project,
+      project: state.inputs.project,
       product,
       metrics,
-      materialsLibrary: state.materialsLibrary,
-      locale: state.locale,
-      t: state.t
+      materialsLibrary: state.inputs.materialsLibrary,
+      locale: state.settings.locale,
+      t: state.settings.t
     });
-    setFeedback(state.t("feedbackExported"));
+    setFeedback(state.settings.t("feedbackExported"));
   } catch (error) {
     setFeedback(getFriendlyErrorMessage(error));
   }
 }
 
 function navigate(step) {
-  document.querySelectorAll(".page").forEach((page) => {
-    page.classList.toggle("active", page.dataset.page === step);
-  });
-  document.querySelectorAll(".step").forEach((btn) => {
-    btn.classList.toggle("active", btn.dataset.step === step);
-  });
+  MapsTo(step);
 }
 
 function applyLocale(locale) {
-  state.locale = locale;
-  state.t = createTranslator(locale);
-  applyDocumentLocale(locale);
+  const normalizedLocale = persistLocaleSelection(locale);
+  console.log("App Trace: applyLocale start", normalizedLocale);
+  updateSetting("locale", normalizedLocale);
+  updateSetting("t", createTranslator(normalizedLocale));
+  applyDocumentLocale(normalizedLocale);
 
-  const t = state.t;
+  const t = state.settings.t;
   const textKeys = {
     appTitle: "appTitle",
     appSubtitle: "appSubtitle",
@@ -2362,6 +2012,8 @@ function applyLocale(locale) {
     pricingModeMargin: "pricingModeMargin",
     pricingModeAdvancedHelp: "pricingModeAdvancedHelp",
     safetyMarginPercentLabel: "safetyMarginPercentLabel",
+    taxRateLabel: "taxRateLabel",
+    wholesaleDiscountLabel: "wholesaleDiscountLabel",
     safetyMarginPercentHelp: "safetyMarginPercentHelp",
     fixedCostsTitle: "fixedCostsTitle",
     fixedCostsHint: "fixedCostsHint",
@@ -2427,9 +2079,14 @@ function applyLocale(locale) {
     const el = document.getElementById(id);
     if (el) el.textContent = t(key);
   });
-  if (refs.startNewProjectBtn) refs.startNewProjectBtn.textContent = getResetProjectLabel(locale);
+  if (refs.startNewProjectBtn) refs.startNewProjectBtn.textContent = getResetProjectLabel(normalizedLocale);
   if (refs.appGuideDismiss) refs.appGuideDismiss.setAttribute("aria-label", t("appGuideDismiss"));
   updateDemoModeTexts();
+
+  if (!refs.hourlyRate) {
+    console.warn("App Warning: applyLocale called before refs were ready.");
+    return;
+  }
 
   refs.hourlyRate.placeholder = t("hourlyRatePlaceholder");
   refs.hourlyRateTooltip.textContent = "?";
@@ -2440,8 +2097,6 @@ function applyLocale(locale) {
   refs.hourlyRateZeroWarning.textContent = t("hourlyRateZeroWarning");
   refs.salesOptionalUnits.placeholder = t("salesOptionalInputPlaceholder");
   refs.materialsSearch.placeholder = t("materialsSearchPlaceholder");
-  refs.languageSelect.querySelector('option[value="ar"]').textContent = t("langArabic");
-  refs.languageSelect.querySelector('option[value="en"]').textContent = t("langEnglish");
   refs.materialUnitType.querySelector('option[value="piece"]').textContent = t("unitTypePiece");
   refs.materialUnitType.querySelector('option[value="g"]').textContent = t("unitTypeG");
   refs.materialUnitType.querySelector('option[value="kg"]').textContent = t("unitTypeKg");
@@ -2454,8 +2109,6 @@ function applyLocale(locale) {
     refs.unitName.value = t("defaultUnitName");
   }
 
-  refs.languageSelect.value = locale;
-  setSiteLanguageButtons(locale);
   updateAuthTexts();
   renderAuthPanel();
   renderDemoModeBanner();
@@ -2469,24 +2122,32 @@ function applyLocale(locale) {
   renderRecipeMaterialOptions();
   renderProductsList();
   renderProductPicker();
-  applyUiMode(state.uiMode);
+  applyUiMode(state.settings.uiMode);
+
+  window.dispatchEvent(new CustomEvent("pricingplus:locale-changed", {
+    detail: { locale: normalizedLocale }
+  }));
+  console.log("App Trace: applyLocale end");
 }
 
 function fillSettingsFromState() {
-  refs.hourlyRate.value = state.project.hourlyRate;
-  refs.salesCurrentUnits.value = state.project.hasSales === "yes" ? state.project.salesUnitsInput || state.project.expectedMonthlySales || "" : "";
-  refs.salesOptionalUnits.value = state.project.hasSales === "no" ? state.project.salesUnitsInput || state.project.expectedMonthlySales || "" : "";
-  refs.safetyMarginPercent.value = state.project.safetyMarginPercent;
-  refs.pricingPercent.value = state.project.pricingPercent;
+  refs.hourlyRate.value = state.inputs.project.hourlyRate;
+  refs.salesCurrentUnits.value = state.inputs.project.hasSales === "yes" ? state.inputs.project.salesUnitsInput || state.inputs.project.expectedMonthlySales || "" : "";
+  refs.salesOptionalUnits.value = state.inputs.project.hasSales === "no" ? state.inputs.project.salesUnitsInput || state.inputs.project.expectedMonthlySales || "" : "";
+  refs.safetyMarginPercent.value = state.inputs.project.safetyMarginPercent;
+  refs.pricingPercent.value = state.inputs.project.pricingPercent;
+
+  if (refs.taxRateInput) refs.taxRateInput.value = state.inputs.project.taxRate || 0;
+  if (refs.wholesaleDiscountInput) refs.wholesaleDiscountInput.value = state.inputs.project.wholesaleDiscount || 0;
 
   document.querySelectorAll('input[name="hasSales"]').forEach((el) => {
-    el.checked = el.value === (state.project.hasSales || "yes");
+    el.checked = el.value === (state.inputs.project.hasSales || "yes");
   });
   document.querySelectorAll('input[name="pricingMode"]').forEach((el) => {
-    el.checked = el.value === (state.project.pricingMode || "markup");
+    el.checked = el.value === (state.inputs.project.pricingMode || "markup");
   });
 
-  applyUiMode(state.project.uiMode || "simple");
+  applyUiMode(state.inputs.project.uiMode || "simple");
   renderSalesBlocks();
   renderCurrencySelect();
   renderSettingsLists();
@@ -2497,17 +2158,45 @@ function fillSettingsFromState() {
 
 function bindEvents() {
   const firstInputHandler = (event) => {
-    if (state.analytics.calculatorStarted) return;
+    if (state.settings.analytics.calculatorStarted) return;
     const target = event.target;
     if (!(target instanceof HTMLInputElement || target instanceof HTMLSelectElement || target instanceof HTMLTextAreaElement)) {
       return;
     }
-    state.analytics.calculatorStarted = true;
+    updateSetting("analytics", { ...state.settings.analytics, calculatorStarted: true });
     trackEvent("calculator_started");
   };
 
-  document.addEventListener("input", firstInputHandler, true);
-  document.addEventListener("change", firstInputHandler, true);
+  document.addEventListener("input", firstInputHandler, { capture: true, once: true });
+  document.addEventListener("change", firstInputHandler, { capture: true, once: true });
+
+  // === Smart Numeric Inputs Logic ===
+  document.addEventListener("focusin", (e) => {
+    const t = e.target;
+    if (t.tagName === "INPUT" && t.type === "number" && (t.value === "0" || t.value === "0.00")) {
+      t.select();
+    }
+  });
+
+  document.addEventListener("input", (e) => {
+    const t = e.target;
+    if (t.tagName === "INPUT" && t.type === "number") {
+      const val = t.value;
+      if (/[^0-9.]/.test(val)) {
+        t.value = val.replace(/[^0-9.]/g, "");
+        showToast("numbers_only", "error");
+      }
+    }
+  });
+
+  document.addEventListener("focusout", (e) => {
+    const t = e.target;
+    if (t.tagName === "INPUT" && t.type === "number" && t.value.trim() === "") {
+      t.value = "0";
+      t.dispatchEvent(new Event("input", { bubbles: true }));
+    }
+  });
+
 
   document.querySelectorAll(".step").forEach((btn) => {
     btn.addEventListener("click", () => navigate(btn.dataset.step));
@@ -2517,7 +2206,6 @@ function bindEvents() {
     btn.addEventListener("click", () => navigate(btn.dataset.next));
   });
 
-  refs.languageSelect.disabled = true;
   refs.appGuideDismiss?.addEventListener("click", () => {
     refs.appGuideBox?.classList.add("hidden");
   });
@@ -2526,30 +2214,44 @@ function bindEvents() {
   refs.advancedModeBtn.addEventListener("click", () => applyUiMode("advanced"));
 
   refs.currencyCode.addEventListener("change", () => {
-    const from = state.project.currencyCode || "USD";
+    const from = state.inputs.project.currencyCode || "USD";
     const to = refs.currencyCode.value || "USD";
-    state.project.currencyCode = to;
+    updateInput("currencyCode", to);
     if (from !== to) {
-      trackEvent("currency_changed", { from, to, lang: state.locale });
+      trackEvent("currency_changed", { from, to, lang: state.settings.locale });
     }
     renderCurrencySelect();
   });
 
   refs.hourlyRate.addEventListener("input", renderHourlyRateWarning);
+  
+  const taxIn = refs.taxRateInput;
+  if (taxIn) {
+    taxIn.addEventListener("input", () => {
+      updateInput("taxRate", toNumber(taxIn.value, 0));
+    });
+  }
+  
+  const wholesaleIn = refs.wholesaleDiscountInput;
+  if (wholesaleIn) {
+    wholesaleIn.addEventListener("input", () => {
+      updateInput("wholesaleDiscount", toNumber(wholesaleIn.value, 0));
+    });
+  }
   refs.laborMinutes.addEventListener("input", () => {
-    if (state.analytics.laborTimeAdded) return;
+    if (state.settings.analytics.laborTimeAdded) return;
     if (toNumber(refs.laborMinutes.value, 0) <= 0) return;
-    state.analytics.laborTimeAdded = true;
+    updateSetting("analytics", { ...state.settings.analytics, laborTimeAdded: true });
     trackEvent("labor_time_added");
   });
 
   refs.fixedCostsList.addEventListener("input", (event) => {
-    if (state.analytics.fixedCostsAdded) return;
+    if (state.settings.analytics.fixedCostsAdded) return;
     const target = event.target;
     if (!(target instanceof HTMLInputElement)) return;
     if (target.type !== "number") return;
     if (toNumber(target.value, 0) <= 0) return;
-    state.analytics.fixedCostsAdded = true;
+    updateSetting("analytics", { ...state.settings.analytics, fixedCostsAdded: true });
     trackEvent("fixed_costs_added");
   });
 
@@ -2559,13 +2261,21 @@ function bindEvents() {
   });
 
   refs.addFixedCostBtn.addEventListener("click", () => {
-    state.project.monthlyFixedCosts.push({ id: uid("fixed"), name: "", templateKey: "", amount: 0 });
+    const newItem = { id: uid("fixed"), name: "", templateKey: "", amount: 0 };
+    state.inputs.project.monthlyFixedCosts.push(newItem);
     renderSettingsLists();
+    setTimeout(() => {
+      document.querySelector(`[data-id="${newItem.id}"]`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 50);
   });
 
   refs.addEquipmentBtn.addEventListener("click", () => {
-    state.project.equipmentDepreciation.push({ id: uid("equip"), name: "", purchasePrice: 0, lifetimeMonths: 12 });
+    const newItem = { id: uid("equip"), name: "", purchasePrice: 0, lifetimeMonths: 12 };
+    state.inputs.project.equipmentDepreciation.push(newItem);
     renderSettingsLists();
+    setTimeout(() => {
+      document.querySelector(`[data-id="${newItem.id}"]`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 50);
   });
 
   refs.demoBakeryBtn?.addEventListener("click", () => applyDemoSeed("bakery"));
@@ -2587,7 +2297,7 @@ function bindEvents() {
   });
 
   refs.advancedSettingsBtn.addEventListener("click", () => {
-    if (state.uiMode === "simple") return;
+    if (state.settings.uiMode === "simple") return;
     refs.advancedSettingsPanel.classList.toggle("hidden");
   });
 
@@ -2602,15 +2312,19 @@ function bindEvents() {
 
   refs.addRecipeItemBtn.addEventListener("click", () => {
     const recipe = currentRecipeFromForm();
-    recipe.push({ materialId: "", qtyPerUnit: 1, overrideWastePercent: null });
+    const newItem = { materialId: "", qtyPerUnit: 1, overrideWastePercent: null, tempId: uid("recipe") };
+    recipe.push(newItem);
     renderRecipeRows(recipe);
+    setTimeout(() => {
+      document.querySelector(`[data-temp-id="${newItem.tempId}"]`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 50);
   });
 
   refs.addVariantBtn.addEventListener("click", () => {
     const variants = currentVariantsFromForm();
-    variants.push({
+    const newItem = {
       id: uid("variant"),
-      name: state.t("defaultVariantName"),
+      name: state.settings.t("defaultVariantName"),
       unitsPerVariant: 1,
       extraPackagingCost: 0,
       sellingPriceOverride: 0,
@@ -2620,15 +2334,27 @@ function bindEvents() {
       deliveryPricingMode: "customer_separate",
       deliveryCost: 0,
       deliveryCostBasis: "perOrder"
-    });
+    };
+    variants.push(newItem);
     renderVariantRows(variants);
+    setTimeout(() => {
+      document.querySelector(`[data-id="${newItem.id}"]`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 50);
   });
 
   refs.productForm.addEventListener("submit", saveProduct);
   refs.resetProductBtn.addEventListener("click", resetProductForm);
 
   refs.resultProductSelect.addEventListener("change", () => {
-    state.selectedProductId = refs.resultProductSelect.value;
+    updateSetting("selectedProductId", refs.resultProductSelect.value);
+  });
+
+  refs.resultSellingPrice.addEventListener("input", () => {
+    if (!state.settings.analytics.sellingPriceChanged) {
+      updateSetting("analytics", { sellingPriceChanged: true });
+      trackEvent("selling_price_changed");
+    }
+    renderResults();
   });
 
   refs.calculateBtn.addEventListener("click", () => {
@@ -2646,17 +2372,17 @@ function bindEvents() {
   refs.exitDemoModeBtn?.addEventListener("click", exitDemoModeReload);
 
   window.addEventListener("storage", (event) => {
-    if (event.key !== LOCALE_KEY) return;
+    if (event.key !== SELECTED_LANGUAGE_KEY && event.key !== LOCALE_KEY) return;
     const next = getCanonicalLocale();
-    if (next === state.locale) return;
-    state.project.localeMode = next;
+    if (next === state.settings.locale) return;
+    updateInput("localeMode", next);
     applyLocale(next);
   });
 
   window.addEventListener("pricingplus:locale-changed", () => {
     const next = getCanonicalLocale();
-    if (next === state.locale) return;
-    state.project.localeMode = next;
+    if (next === state.settings.locale) return;
+    updateInput("localeMode", next);
     applyLocale(next);
   });
 }
@@ -2667,46 +2393,65 @@ async function loadCurrencies() {
   if (!response.ok) {
     throw new Error("LOAD_CURRENCIES_FAILED");
   }
-  state.currencies = await response.json();
+  state.settings.currencies = await response.json();
 }
 
 async function loadState() {
-  await storage.init();
+  await dbService.init();
   await loadCurrencies();
 
   const defaultProject = createDefaultProject();
-  const storedProject = await storage.getProject();
-  state.project = storedProject ? { ...defaultProject, ...storedProject } : { ...defaultProject };
-  if ("demo" in state.project) {
-    delete state.project.demo;
+  const storedProject = await dbService.getProject();
+  const project = storedProject ? { ...defaultProject, ...storedProject } : { ...defaultProject };
+  if ("demo" in project) {
+    delete project.demo;
   }
-  ensureProjectFixedCosts(state.project);
+  ensureProjectFixedCosts(project);
+  updateInput("project", project);
 
-  state.project.uiMode = state.project.uiMode === "advanced" ? "advanced" : "simple";
-  state.uiMode = state.project.uiMode;
-  state.project.localeMode = state.locale;
-  state.demoMode = false;
+  updateInput("uiMode", project.uiMode === "advanced" ? "advanced" : "simple");
+  updateSetting("uiMode", project.uiMode);
+  updateInput("localeMode", state.settings.locale);
+  updateSetting("demoMode", false);
 
-  state.materialsLibrary = await storage.listMaterials();
-  state.products = (await storage.listProducts()).map(normalizeProduct);
-  state.selectedProductId = state.products[0]?.id ?? null;
+  updateInput("materialsLibrary", await dbService.getMaterials());
+  setProducts((await dbService.getProducts()).map(normalizeProduct));
+  updateSetting("selectedProductId", state.products[0]?.id ?? null);
 }
 
 async function init() {
-  state.locale = getCanonicalLocale();
+  initRefs();
+  console.log("App Trace: init start");
+  state.settings.locale = getCanonicalLocale();
   await loadState();
-  wrapStorageWritesForSync();
+  // Storage write mapping is now integrated into dbService.
   bindEvents();
   await initAuth();
+
+  // Inject Language Selector
+  if (refs.languageSelectorContainer && !refs.languageSelectorContainer.hasChildNodes()) {
+    const selector = LanguageSelector((lang) => {
+      const normalizedLocale = normalizeLocale(lang);
+      updateSetting("locale", normalizedLocale);
+      updateSetting("t", createTranslator(normalizedLocale));
+    });
+    refs.languageSelectorContainer.appendChild(selector);
+  }
+
   applyLocale(getCanonicalLocale());
   fillSettingsFromState();
   analytics()?.trackPageView(getLangCurrencyContext());
   resetMaterialForm();
   resetProductForm();
   await consumeDemoFromQuery();
+  console.log("App Trace: init end");
 }
 
-init().catch((error) => {
-  console.error(error);
-  setFeedback(getFriendlyErrorMessage(error));
+window.addEventListener('DOMContentLoaded', () => {
+  init().catch((error) => {
+    console.error("App Crash in init():", error);
+    if (refs.feedback) {
+      setFeedback(getFriendlyErrorMessage(error));
+    }
+  });
 });

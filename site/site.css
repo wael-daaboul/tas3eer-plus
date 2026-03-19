@@ -105,26 +105,7 @@ html[lang="en"] .logo-ar { display: none !important; }
   font-weight: 700;
 }
 
-.lang-switch {
-  display: inline-flex;
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  overflow: hidden;
-}
 
-.lang-btn {
-  border: 0;
-  background: transparent;
-  padding: 0.35rem 0.6rem;
-  border-radius: 0;
-  min-height: 0;
-}
-
-.lang-btn.active {
-  background: var(--pp-bg-soft);
-  color: var(--pp-blue);
-  font-weight: 700;
-}
 
 .hero {
   padding: 2.2rem 0 1.3rem;
@@ -752,4 +733,128 @@ html[lang="en"] .logo-ar { display: none !important; }
     padding: 0.6rem 1rem;
     font-size: 0.9rem;
   }
+}
+
+/* Language Selector Component */
+.lang-selector {
+  position: relative;
+  user-select: none;
+}
+
+.lang-selector-trigger {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-weight: 500;
+  color: var(--ink);
+  font-size: 0.95rem;
+}
+
+.lang-selector-trigger:hover {
+  background: #fff;
+  border-color: var(--pp-blue);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.1);
+}
+
+.lang-selector-trigger .chevron {
+  width: 14px;
+  height: 14px;
+  opacity: 0.5;
+  transition: transform 0.2s ease;
+}
+
+.lang-selector.is-open .lang-selector-trigger .chevron {
+  transform: rotate(180deg);
+}
+
+.lang-popover {
+  position: absolute;
+  top: calc(100% + 8px);
+  inset-inline-end: 0;
+  min-width: 160px;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
+  display: none;
+  flex-direction: column;
+  padding: 6px;
+  z-index: 10000;
+  animation: popover-fade-in 0.2s ease-out;
+}
+
+.lang-selector.is-open .lang-popover {
+  display: flex;
+}
+
+.lang-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+  font-size: 0.95rem;
+  color: var(--ink);
+}
+
+.lang-option:hover {
+  background: var(--pp-bg-soft);
+}
+
+.lang-option.active {
+  background: rgba(37, 99, 235, 0.05);
+  color: var(--pp-blue);
+  font-weight: 600;
+}
+
+.lang-option .check {
+  width: 16px;
+  height: 16px;
+  opacity: 0;
+}
+
+.lang-option.active .check {
+  opacity: 1;
+}
+
+@keyframes popover-fade-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+
+
+/* 3D Axial Globe Animation */
+@keyframes globe-axial-spin {
+  from { transform: translateX(0); }
+  to { transform: translateX(-30px); } /* Matches the continent path repeat pattern */
+}
+
+.globe-3d {
+  flex-shrink: 0;
+  color: var(--muted);
+  transition: all 0.3s ease;
+}
+
+.globe-continents-group {
+  animation: globe-axial-spin 12s linear infinite;
+}
+
+.lang-selector-trigger:hover .globe-3d {
+  color: var(--pp-blue);
+  transform: scale(1.1);
+}
+
+.lang-selector-trigger:hover .globe-continents-group {
+  animation-duration: 4s; /* Spin faster on hover */
 }
