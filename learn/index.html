@@ -1,89 +1,186 @@
 <!doctype html>
-<html lang="ar" dir="rtl"> <head> <script> (function() { try { const LOCALE_KEY = "pricingplus_locale"; const SELECTED_LANGUAGE_KEY = "selectedLanguage"; const LEGACY_KEYS = ["pricingplus_lang", "pricingplus-language", "locale", "language"]; let locale = localStorage.getItem(SELECTED_LANGUAGE_KEY) || localStorage.getItem(LOCALE_KEY); if (!locale) { for (const key of LEGACY_KEYS) { const val = localStorage.getItem(key); if (val) { locale = val; break; } } } if (!locale) { locale = navigator.language || "ar"; } const activeLocale = String(locale).toLowerCase().startsWith("en") ? "en" : "ar"; localStorage.setItem(SELECTED_LANGUAGE_KEY, activeLocale); localStorage.setItem(LOCALE_KEY, activeLocale); document.documentElement.lang = activeLocale; document.documentElement.dir = activeLocale === "ar" ? "rtl" : "ltr"; } catch (e) { console.error("Language detection failed", e); } })(); </script> <meta charset="utf-8" /> <meta name="viewport" content="width=device-width, initial-scale=1" /> <link rel="manifest" href="../manifest.json" /> <meta name="theme-color" content="#2563EB" /> <meta name="apple-mobile-web-app-capable" content="yes" /> <meta name="apple-mobile-web-app-status-bar-style" content="default" /> <meta name="apple-mobile-web-app-title" content="Pricing+" /> <link rel="icon" href="../icons/favicon.ico" /> <link rel="icon" type="image/png" sizes="16x16" href="../icons/favicon-16.png" /> <link rel="icon" type="image/png" sizes="32x32" href="../icons/favicon-32.png" /> <link rel="apple-touch-icon" href="../icons/apple-touch-icon.png" /> <title>تسعير+ | تعلم كيفية تسعير المنتجات باحترافية</title> <meta name="title" content="تسعير+ | تعلم كيفية تسعير المنتجات باحترافية" /> <meta name="description" content="مقالات ودلائل تعليمية مبسطة لمساعدة أصحاب المشاريع الصغيرة والمنزلية على فهم قواعد التسعير وحساب الأرباح." /> <link rel="canonical" href="https://pricingplus.app/learn/" /> <meta property="og:title" content="تسعير+ | تعلم التسعير" /> <meta property="og:description" content="دلائل تعليمية مبسطة للمشاريع الصغيرة حول كيفية حساب تكلفة المنتج وتسعيره بشكل صحيح." /> <meta property="og:url" content="https://pricingplus.app/learn/" /> <link rel="canonical" href="https://pricingplus.app/learn/" /> <link rel="stylesheet" href="../site/site.css?v=1.5.0" /> <script type="module" src="../site/site.js?v=1.5.0"></script>
-</head> <body> <header class="header"> <div class="container header-inner"> <a href="/" class="brand" aria-label="Pricing+ Home"> <img class="brand-logo logo-ar" src="../assets/brand/logo-ar.svg" width="180" height="28" alt="شعار تسعير بلس - أداة حساب تكلفة المنتجات" loading="eager" decoding="async" /> <img class="brand-logo logo-en" src="../assets/brand/logo-en.svg" width="180" height="28" alt="Pricing+ Logo - Product Pricing Tool" loading="eager" decoding="async" /> </a> <nav id="siteNav" class="nav"> <a href="/" id="siteNavHome" data-i18n="navHome"></a> <a href="/app/" id="siteNavApp" data-i18n="navApp"></a> <a href="/learn/" id="siteNavLearn" data-i18n="navLearn"></a> <a href="/how-it-works/" id="siteNavHow" data-i18n="navHow"></a> <a href="/support/" id="siteNavSupport" data-i18n="navSupport"></a> <a href="/about/" id="siteNavAbout" data-i18n="navAbout"></a> </nav> <button class="nav-toggle" aria-controls="siteNav" aria-expanded="false" aria-label="Menu" type="button"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"> <line x1="3" y1="12" x2="21" y2="12"></line> <line x1="3" y1="6" x2="21" y2="6"></line> <line x1="3" y1="18" x2="21" y2="18"></line> </svg></button> <div id="language-selector-container"></div> </div> </header> <main class="container page-main"> <section class="hero card"> <h1 data-i18n="learnTitle"></h1> <p data-i18n="learnSubtitle"></p> </section> <section class="card-grid"> <!-- ARTICLES_LIST_START -->
+<html lang="ar" dir="rtl">
+
+<head>
+  <script> (function () { try { const LOCALE_KEY = "pricingplus_locale"; const SELECTED_LANGUAGE_KEY = "selectedLanguage"; const LEGACY_KEYS = ["pricingplus_lang", "pricingplus-language", "locale", "language"]; let locale = localStorage.getItem(SELECTED_LANGUAGE_KEY) || localStorage.getItem(LOCALE_KEY); if (!locale) { for (const key of LEGACY_KEYS) { const val = localStorage.getItem(key); if (val) { locale = val; break; } } } if (!locale) { locale = navigator.language || "ar"; } const activeLocale = String(locale).toLowerCase().startsWith("en") ? "en" : "ar"; localStorage.setItem(SELECTED_LANGUAGE_KEY, activeLocale); localStorage.setItem(LOCALE_KEY, activeLocale); document.documentElement.lang = activeLocale; document.documentElement.dir = activeLocale === "ar" ? "rtl" : "ltr"; } catch (e) { console.error("Language detection failed", e); } })(); </script>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="manifest" href="../manifest.json" />
+  <meta name="theme-color" content="#2563EB" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="Pricing+" />
+  <link rel="icon" href="../icons/favicon.ico" />
+  <link rel="icon" type="image/png" sizes="16x16" href="../icons/favicon-16.png" />
+  <link rel="icon" type="image/png" sizes="32x32" href="../icons/favicon-32.png" />
+  <link rel="apple-touch-icon" href="../icons/apple-touch-icon.png" />
+  <title>تسعير+ | تعلم كيفية تسعير المنتجات باحترافية</title>
+  <meta name="title" content="تسعير+ | تعلم كيفية تسعير المنتجات باحترافية" />
+  <meta name="description"
+    content="مقالات ودلائل تعليمية مبسطة لمساعدة أصحاب المشاريع الصغيرة والمنزلية على فهم قواعد التسعير وحساب الأرباح." />
+  <link rel="canonical" href="https://pricingplus.app/learn/" />
+  <meta property="og:title" content="تسعير+ | تعلم التسعير" />
+  <meta property="og:description"
+    content="دلائل تعليمية مبسطة للمشاريع الصغيرة حول كيفية حساب تكلفة المنتج وتسعيره بشكل صحيح." />
+  <meta property="og:url" content="https://pricingplus.app/learn/" />
+  <link rel="canonical" href="https://pricingplus.app/learn/" />
+  <link rel="stylesheet" href="../site/site.css?v=1.5.0" />
+  <script type="module" src="../site/site.js?v=1.5.0"></script>
+</head>
+
+<body>
+  <header class="header">
+    <div class="container header-inner"> <a href="/" class="brand" aria-label="Pricing+ Home"> <img
+          class="brand-logo logo-ar" src="../assets/brand/logo-ar.svg" width="180" height="28"
+          alt="شعار تسعير بلس - أداة حساب تكلفة المنتجات" loading="eager" decoding="async" /> <img
+          class="brand-logo logo-en" src="../assets/brand/logo-en.svg" width="180" height="28"
+          alt="Pricing+ Logo - Product Pricing Tool" loading="eager" decoding="async" /> </a>
+      <nav id="siteNav" class="nav"> <a href="/" id="siteNavHome" data-i18n="navHome"></a> <a href="/app/"
+          id="siteNavApp" data-i18n="navApp"></a> <a href="/learn/" id="siteNavLearn" data-i18n="navLearn"></a> <a
+          href="/how-it-works/" id="siteNavHow" data-i18n="navHow"></a> <a href="/support/" id="siteNavSupport"
+          data-i18n="navSupport"></a> <a href="/about/" id="siteNavAbout" data-i18n="navAbout"></a> </nav> <button
+        class="nav-toggle" aria-controls="siteNav" aria-expanded="false" aria-label="Menu" type="button"><svg width="24"
+          height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+          stroke-linejoin="round">
+          <line x1="3" y1="12" x2="21" y2="12"></line>
+          <line x1="3" y1="6" x2="21" y2="6"></line>
+          <line x1="3" y1="18" x2="21" y2="18"></line>
+        </svg></button>
+      <div id="language-selector-container"></div>
+    </div>
+  </header>
+  <main class="container page-main">
+    <section class="hero card">
+      <h1 data-i18n="learnTitle"></h1>
+      <p data-i18n="learnSubtitle"></p>
+    </section>
+    <section class="card-grid"> <!-- ARTICLES_LIST_START -->
 
       <article class="card">
         <h2>كيفية حساب نقطة التعادل: اعرف متى يبدأ مشروعك في تحقيق الربح</h2>
-        <p class="card-desc">دليل مبسط لفهم نقطة التعادل وكيفية حسابها لأصحاب المشاريع المنزلية الصغيرة مع أمثلة عملية خطوة بخطوة</p>
-        <div class="actions-row"><a class="btn btn-secondary" href="/learn/break-even-point.html">اقرأ المقال الكامل</a></div>
+        <p class="card-desc">دليل مبسط لفهم نقطة التعادل وكيفية حسابها لأصحاب المشاريع المنزلية الصغيرة مع أمثلة عملية
+          خطوة بخطوة</p>
+        <div class="actions-row"><a class="btn btn-secondary" href="/learn/break-even-point.html">اقرأ المقال الكامل</a>
+        </div>
       </article>
 
       <article class="card">
         <h2>التسعير بناءً على التكلفة فقط: لماذا قد يُضر بمشروعك المنزلي؟</h2>
-        <p class="card-desc">اكتشف لماذا الاعتماد على التكلفة فقط في التسعير قد يخسرك أرباحاً وينفر عملاءك، مع خطوات عملية لتسعير ذكي.</p>
-        <div class="actions-row"><a class="btn btn-secondary" href="/learn/cost-based-pricing-mistakes.html">اقرأ المقال الكامل</a></div>
+        <p class="card-desc">اكتشف لماذا الاعتماد على التكلفة فقط في التسعير قد يخسرك أرباحاً وينفر عملاءك، مع خطوات
+          عملية لتسعير ذكي.</p>
+        <div class="actions-row"><a class="btn btn-secondary" href="/learn/cost-based-pricing-mistakes.html">اقرأ المقال
+            الكامل</a></div>
       </article>
 
       <article class="card">
         <h2>هيكل التكاليف في الأعمال الصغيرة: دليلك العملي لفهم مصاريف مشروعك المنزلي</h2>
-        <p class="card-desc">تعرف على أنواع التكاليف في مشروعك المنزلي: الثابتة والمتغيرة والنفقات الخفية، وكيف تؤثر على أرباحك بطريقة بسيطة وعملية.</p>
-        <div class="actions-row"><a class="btn btn-secondary" href="/learn/cost-structure-small-business.html">اقرأ المقال الكامل</a></div>
+        <p class="card-desc">تعرف على أنواع التكاليف في مشروعك المنزلي: الثابتة والمتغيرة والنفقات الخفية، وكيف تؤثر على
+          أرباحك بطريقة بسيطة وعملية.</p>
+        <div class="actions-row"><a class="btn btn-secondary" href="/learn/cost-structure-small-business.html">اقرأ
+            المقال الكامل</a></div>
       </article>
 
       <article class="card">
         <h2>الخوف من رفع الأسعار: لماذا تتردد وماذا يكلفك ذلك؟</h2>
-        <p class="card-desc">اكتشف لماذا يخاف أصحاب المشاريع المنزلية من رفع الأسعار وكيف يتغلبون على هذا الخوف بخطوات عملية بسيطة.</p>
-        <div class="actions-row"><a class="btn btn-secondary" href="/learn/fear-of-raising-prices.html">اقرأ المقال الكامل</a></div>
+        <p class="card-desc">اكتشف لماذا يخاف أصحاب المشاريع المنزلية من رفع الأسعار وكيف يتغلبون على هذا الخوف بخطوات
+          عملية بسيطة.</p>
+        <div class="actions-row"><a class="btn btn-secondary" href="/learn/fear-of-raising-prices.html">اقرأ المقال
+            الكامل</a></div>
       </article>
 
       <article class="card">
         <h2>هل تُهدر أرباحك دون أن تدري؟ اكتشف التكاليف الخفية التي تقتل مشروعك</h2>
-        <p class="card-desc">تعرف على التكاليف الخفية والنفقات غير المباشرة التي قد تُضيع أرباح مشروعك المنزلي، وكيفية حسابها بسهولة.</p>
-        <div class="actions-row"><a class="btn btn-secondary" href="/learn/hidden-costs-profit-margins.html">اقرأ المقال الكامل</a></div>
+        <p class="card-desc">تعرف على التكاليف الخفية والنفقات غير المباشرة التي قد تُضيع أرباح مشروعك المنزلي، وكيفية
+          حسابها بسهولة.</p>
+        <div class="actions-row"><a class="btn btn-secondary" href="/learn/hidden-costs-profit-margins.html">اقرأ المقال
+            الكامل</a></div>
       </article>
 
       <article class="card">
         <h2>فخ التسعير المنخفض: لماذا الأسعار الرخيصة قد تدمر مشروعك المنزلي؟</h2>
-        <p class="card-desc">اكتشف لماذا التسعير المنخفض ليس استراتيجية ذكية لجذب العملاء وكيف يضر بعلامتك التجارية وربحيتك على المدى الطويل</p>
-        <div class="actions-row"><a class="btn btn-secondary" href="/learn/low-pricing-trap.html">اقرأ المقال الكامل</a></div>
+        <p class="card-desc">اكتشف لماذا التسعير المنخفض ليس استراتيجية ذكية لجذب العملاء وكيف يضر بعلامتك التجارية
+          وربحيتك على المدى الطويل</p>
+        <div class="actions-row"><a class="btn btn-secondary" href="/learn/low-pricing-trap.html">اقرأ المقال الكامل</a>
+        </div>
       </article>
 
       <article class="card">
         <h2>الفرق بين السعر والقيمة: لماذا قد يدفع عميلك أكثر مما تظن؟</h2>
-        <p class="card-desc">اكتشف الفرق الجوهري بين السعر والقيمة، وكيف تجعل عملاءك يرون قيمة منتجاتك وليس فقط الرقم المكتوب عليها.</p>
-        <div class="actions-row"><a class="btn btn-secondary" href="/learn/price-vs-value-difference.html">اقرأ المقال الكامل</a></div>
+        <p class="card-desc">اكتشف الفرق الجوهري بين السعر والقيمة، وكيف تجعل عملاءك يرون قيمة منتجاتك وليس فقط الرقم
+          المكتوب عليها.</p>
+        <div class="actions-row"><a class="btn btn-secondary" href="/learn/price-vs-value-difference.html">اقرأ المقال
+            الكامل</a></div>
       </article>
 
       <article class="card">
         <h2>سيكولوجية الأرقام في التسعير: لماذا يشتري عملاؤك المنتج بـ 9.99 دولار ولا يشترونه بـ 10؟</h2>
-        <p class="card-desc">اكتشف أسرار التسعير النفسي وكيف تستخدمه في مشروعك المنزلي لزيادة المبيعات دون رفع الأسعار</p>
-        <div class="actions-row"><a class="btn btn-secondary" href="/learn/pricing-psychology-numbers.html">اقرأ المقال الكامل</a></div>
+        <p class="card-desc">اكتشف أسرار التسعير النفسي وكيف تستخدمه في مشروعك المنزلي لزيادة المبيعات دون رفع الأسعار
+        </p>
+        <div class="actions-row"><a class="btn btn-secondary" href="/learn/pricing-psychology-numbers.html">اقرأ المقال
+            الكامل</a></div>
       </article>
 
       <article class="card">
         <h2>استراتيجيات التسعير الخمس الأساسية: دليل صاحب المشروع المنزلي</h2>
-        <p class="card-desc">تعرف على 5 استراتيجيات تسعير بسيطة وفعالة لمشروعك المنزلي: التكلفة + هامش، القائمة على القيمة، التنافسية، التمييزية، والاختراقية</p>
-        <div class="actions-row"><a class="btn btn-secondary" href="/learn/five-pricing-strategies.html">اقرأ المقال الكامل</a></div>
+        <p class="card-desc">تعرف على 5 استراتيجيات تسعير بسيطة وفعالة لمشروعك المنزلي: التكلفة + هامش، القائمة على
+          القيمة، التنافسية، التمييزية، والاختراقية</p>
+        <div class="actions-row"><a class="btn btn-secondary" href="/learn/five-pricing-strategies.html">اقرأ المقال
+            الكامل</a></div>
       </article>
 
       <article class="card">
         <h2>التكاليف الثابتة: ما هي وكيف تحسبها لمشروعك المنزلي بكل بساطة؟</h2>
-        <p class="card-desc">تعرف على التكاليف الثابتة لمشروعك المنزلي (مثل إيجار ورشتك وفواتير الكهرباء) وكيفية حسابها بسهولة لتسعير منتجاتك بشكل صحيح.</p>
-        <div class="actions-row"><a class="btn btn-secondary" href="/learn/what-are-fixed-costs.html">اقرأ المقال الكامل</a></div>
+        <p class="card-desc">تعرف على التكاليف الثابتة لمشروعك المنزلي (مثل إيجار ورشتك وفواتير الكهرباء) وكيفية حسابها
+          بسهولة لتسعير منتجاتك بشكل صحيح.</p>
+        <div class="actions-row"><a class="btn btn-secondary" href="/learn/what-are-fixed-costs.html">اقرأ المقال
+            الكامل</a></div>
       </article>
 
       <article class="card">
         <h2>كيف تحسب تكلفة منتجاتك اليدوية دون أن تخسر؟ (دليل شامل)</h2>
-        <p class="card-desc">افهم الفرق بين التكلفة الثابتة والمتغيرة، وكيفية حساب وقتك كمجهود مدفوع لتضمن ربحاً حقيقياً.</p>
+        <p class="card-desc">افهم الفرق بين التكلفة الثابتة والمتغيرة، وكيفية حساب وقتك كمجهود مدفوع لتضمن ربحاً
+          حقيقياً.</p>
         <div class="actions-row"><a class="btn btn-secondary" href="/learn/basics.html">اقرأ المقال الكامل</a></div>
       </article>
 
       <article class="card">
         <h2>أمثلة عملية لتسعير (كيك، عطور، هاند ميد)</h2>
-        <p class="card-desc">نماذج تطبيقية حقيقية توضح لك كيف يتم توزيع التكاليف وحساب السعر النهائي لمنتجات متنوعة باستخدام أداة تسعير+.</p>
+        <p class="card-desc">نماذج تطبيقية حقيقية توضح لك كيف يتم توزيع التكاليف وحساب السعر النهائي لمنتجات متنوعة
+          باستخدام أداة تسعير+.</p>
         <div class="actions-row"><a class="btn btn-secondary" href="/learn/examples.html">اقرأ المقال الكامل</a></div>
       </article>
 
       <article class="card">
         <h2>نسخ أسعار المنافسين: لماذا قد يدمر مشروعك دون أن تدري؟</h2>
-        <p class="card-desc">اكتشف المخاطر الخفية لنسخ أسعار المنافسين دون تحليل، وكيف تحمي مشروعك المنزلي من الخسائر</p>
-        <div class="actions-row"><a class="btn btn-secondary" href="/learn/copying-competitor-prices-without-analysis.html">اقرأ المقال الكامل</a></div>
+        <p class="card-desc">اكتشف المخاطر الخفية لنسخ أسعار المنافسين دون تحليل، وكيف تحمي مشروعك المنزلي من الخسائر
+        </p>
+        <div class="actions-row"><a class="btn btn-secondary"
+            href="/learn/copying-competitor-prices-without-analysis.html">اقرأ المقال الكامل</a></div>
       </article>
 
       <article class="card">
         <h2>أكبر 5 أخطاء في تسعير الحلويات والمشاريع المنزلية (وإزاي تصلحها)</h2>
-        <p class="card-desc">بتضيع فلوسك من غير ما تدري؟ تعرف على أخطاء التسعير القاتلة اللي بتخليك تخسر في مشروع الحلويات المنزلي، وكيف تحسب سعر عادل يربحك ويحافظ على زبونك.</p>
-        <div class="actions-row"><a class="btn btn-secondary" href="/learn/pricing-mistakes-baking-projects.html">اقرأ المقال الكامل</a></div>
+        <p class="card-desc">بتضيع فلوسك من غير ما تدري؟ تعرف على أخطاء التسعير القاتلة اللي بتخليك تخسر في مشروع
+          الحلويات المنزلي، وكيف تحسب سعر عادل يربحك ويحافظ على زبونك.</p>
+        <div class="actions-row"><a class="btn btn-secondary" href="/learn/pricing-mistakes-baking-projects.html">اقرأ
+            المقال الكامل</a></div>
       </article>
-      <!-- ARTICLES_LIST_END --> </section> <div class="actions-row"> <a class="btn btn-primary" href="/app/" data-i18n="ctaOpenTool"></a> </div> </main> <footer class="footer"> <div class="container"> <div class="footer-links"> <a href="/privacy/" data-i18n="footerPrivacy"></a> <a href="/terms/" data-i18n="footerTerms"></a> <a href="mailto:info@pricingplus.app" data-i18n="footerContact"></a> <span data-i18n="footerVersion"></span> </div> </div> </footer> <a href="mailto:info@pricingplus.app" class="fab" aria-label="Contact Us"> <svg class="fab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"> <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path> <polyline points="22,6 12,13 2,6"></polyline> </svg> <span data-i18n="fabText"></span> </a>
-</body> </html>
+      <!-- ARTICLES_LIST_END -->
+    </section>
+    <div class="actions-row"> <a class="btn btn-primary" href="/app/" data-i18n="ctaOpenTool"></a> </div>
+  </main>
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-links"> <a href="/privacy/" data-i18n="footerPrivacy"></a> <a href="/terms/"
+          data-i18n="footerTerms"></a> <a href="mailto:info@pricingplus.app" data-i18n="footerContact"></a> <span
+          data-i18n="footerVersion"></span> </div>
+    </div>
+  </footer> <a href="mailto:info@pricingplus.app" class="fab" aria-label="Contact Us"> <svg class="fab-icon"
+      viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
+      stroke-linejoin="round">
+      <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+      <polyline points="22,6 12,13 2,6"></polyline>
+    </svg> <span data-i18n="fabText"></span> </a>
+</body>
+
+</html>
